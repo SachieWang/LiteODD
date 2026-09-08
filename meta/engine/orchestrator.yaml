@@ -1,0 +1,42 @@
+# =============================================================================
+# 方法论 Layer 2 —— 确定性 DAG 编排契约 (meta 层产物)
+# -----------------------------------------------------------------------------
+# 通用三段全链:需求理解 → 架构评估 → 领域建模(领域建模为基础核心阶段)。
+# 每阶段: deps(依赖/边)、artifacts(产物 glob,相对 target)、gate(确定性闸门规则集)、
+#         approval(审批策略提供者;human 默认 = 人环暂停)。
+# 确定性边界:DAG/拓扑/过门/放行/审计 由引擎代码判定;LLM 只在 Producer 内生产。
+# 与 OpenSpec/任何 harness 解耦:只消费 /meta 与本仓库 target 产物。
+# =============================================================================
+
+schemaVersion: "1.0"
+
+# 目标项目(相对本仓库根);也可被 engine 参数覆盖
+target: "targets/dsh"
+
+# —— forward-compat 可选字段(声明,暂不实现语义;引擎须容忍)——
+# 将来可扩展:retry(失败重试)、parallel(并行执行)、on_fail(失败策略),
+# 由 add-only 保证:现在只声明、不实现,将来加语义不改本章声明。
+forwardCompatibility:
+  note: "per-stage retry/parallel/on_fail 均已声明为可选,当前语义未启用"
+
+stages:
+  - id: req-understand
+    deps: []
+    artifacts: ["artifacts/requirements/*.json"]
+    gate: [schema_requirement, concept_ref, provenance_complete]
+    approval: none
+    on_fail: halt            # forward-compat 声明(未实现)
+
+  - id: arch-assess
+    deps: [req-understand]
+    artifacts: ["artifacts/arch-reports/*.json", "artifacts/adr/*.json"]
+    gate: [schema_arch_report, schema_adr, target_ref_resolves, concept_ref]
+    approval: human          # 人环暂停默认
+    retry: 0                 # forward-compat 声明(未实现)
+
+  - id: domain-model
+    deps: [req-understand]
+    artifacts: ["artifacts/domain-models/*.json"]
+    gate: [schema_domain_model, concept_ref, invariant_present]
+    approval: none
+    parallel: false          # forward-compat 声明(未实现)
