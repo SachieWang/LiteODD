@@ -1,0 +1,7 @@
+# uv runtime artifacts (reproducible via pyproject.toml + uv)
+.uv-cache/
+.uv-python/
+meta/scripts/.venv/
+__pycache__/
+
+targets/

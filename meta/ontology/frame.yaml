@@ -1,0 +1,64 @@
+# =============================================================================
+# 元层通用本体类型 (META-LAYER GENERIC ONTOLOGY FRAME)
+# -----------------------------------------------------------------------------
+# 这是"方法论 Layer 0"的语义脊柱的【类型】层。只存放任何软件系统都有的
+# 通用概念类型与关系类型。严禁出现某个目标项目专属的词(capability-seam、
+# turn、session-log 等)——那些是【实例】,必须放在目标项目的对象层,并经
+# `instantiateOf` 指回这里的类型。
+#
+# 读写约定:
+#   - 元层:本文件 + /meta/metaschema/ 下的 artifact schema
+#   - 对象层:/targets/<project>/ontology/instances.yaml(+ components.yaml)
+#   - 连接:instance.instantiateOf -> 本文件的概念类型;
+#           artifact.conceptRef   -> 对象层实例;
+#           artifact.meta.schemaVersion -> 元层版本化
+# =============================================================================
+
+schemaVersion: 1.0
+
+# —— 7 个通用概念类型 ——
+# 每个类型带极轻的"典型属性"(instances 可补可省略)。
+conceptTypes:
+  - id: Assembly
+    note: 系统如何被拼出来——组件/模块的组合方式、层叠与配置规则
+    attributes: [composedOf, layeredBy, overrideRule]
+
+  - id: Component
+    note: 系统被拆解成的单元(包/模块/服务)
+    attributes: [name, responsibility]
+
+  - id: Seam
+    note: 可替换的"端口-适配器"边界——契约 + 可交换实现 + 消费者
+    attributes: [contract, providers, consumers]
+
+  - id: ExecutionUnit
+    note: 一段可触发、有边界、有副作用的工作(请求/任务/流程片段)
+    attributes: [trigger, boundaryStart, boundaryEnd, sideEffects]
+
+  - id: PersistentState
+    note: 必须可重建、可追溯的状态(append-only 日志/快照/持久化数据)
+    attributes: [appendOnly, reconstructable, invariants]
+
+  - id: EventStream
+    note: 事件的产生/观察/排序(事件驱动系统的广播与分发)
+    attributes: [producers, observers, ordering]
+
+  - id: ContextBoundary
+    note: 隔离/作用域边界(限界上下文、作用域、权限/可见性裁剪)
+    attributes: [isolation, shadowable, restricts]
+
+# —— 通用关系类型(8 条)——
+relationTypes:
+  - id: composes        # Assembly 由什么组成
+  - id: providedBy      # 由谁实现/提供
+  - id: usedBy          # 被谁使用/消费
+  - id: triggers        # 触发什么
+  - id: writes          # 写入什么状态/事件
+  - id: reads           # 读取什么
+  - id: dependsOn       # 依赖什么
+  - id: constrains      # 约束什么
+
+# —— 类型/实例分离规则(元层治理对象层的两个抓手之一)——
+separation:
+  rule: "类型在元层,实例在对象层;实例必须通过 instantiateOf 指回此处的类型。"
+  link: instantiateOf   # 类型 -> 实例 的元/对象映射键
