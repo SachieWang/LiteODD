@@ -46,3 +46,9 @@ stages:
     gate: [schema_domain_model, concept_ref, invariant_present]
     approval: none
     parallel: false          # forward-compat 声明(未实现)
+
+  - id: trace-check
+    deps: [arch-assess, domain-model]
+    artifacts: ["artifacts/**/*.json"]               # 全量:全局链接完整性校验
+    gate: [link_integrity]
+    approval: none

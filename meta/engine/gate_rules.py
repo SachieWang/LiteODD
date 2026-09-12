@@ -15,7 +15,9 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "trace"))
 import check as checker  # 复用 ARTIFACT_SCHEMA / load_yaml
+import tracer  # Layer 4:全局链接完整性(单一事实来源)
 
 from jsonschema import Draft7Validator
 
@@ -261,6 +263,12 @@ def dangling_ref(files, ctx):
             elif itypes.get(r) not in ftypes:
                 errs.append(f"{f}: ref {r!r} instantiateOf not a valid frame type")
     return errs
+
+
+@register("link_integrity")
+def link_integrity(files, ctx):
+    """全局链接完整性(确定性,硬门):委托 tracer.verify_target,单一事实来源。"""
+    return tracer.verify_target(pathlib.Path(ctx["target"]))
 
 
 @register("realm_structure")
