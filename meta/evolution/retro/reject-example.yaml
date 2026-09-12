@@ -1,0 +1,9 @@
+candidate:
+  id: reject-make-field-required
+  signal: 想收紧 schema 提高一致性(把可选字段改必填)
+  evidence: 复盘:REQ 某些字段经常空缺
+  target: metaschema
+  changerecord: openspec/changes/archive/2026-09-09-layer2-harness
+  version_bump: metaschema 1.0 -> 1.1
+  bench_status: pass
+  addonly: false   # Breaking:把可选变必填 → add-only 不兼容

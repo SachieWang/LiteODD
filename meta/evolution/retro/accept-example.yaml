@@ -1,0 +1,9 @@
+candidate:
+  id: accept-threshold-approval-policy
+  signal: 高频的重复审批决策适合引入阈值自动审批,提高 loop 自动化率
+  evidence: 某目标项目 .audit 下的 Layer 2 审计轨迹(重复 human HOLD 的审批点)【通用示例,不指向具体项目】
+  target: gate
+  changerecord: openspec/changes/archive/2026-09-09-layer2-harness
+  version_bump: gate_rules 1.0 -> 1.1 (新增 policy 审批提供者注册)
+  bench_status: pass
+  addonly: true
