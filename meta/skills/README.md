@@ -20,7 +20,7 @@
 三者都复用 `/meta/scripts/check.py`(uv + Python)跑三段不变量 + `conceptRef` 解析:
 
 ```
-uv run --project meta/scripts python meta/scripts/check.py <project>   # 如 targets/dsh
+uv run --project meta/scripts python meta/scripts/check.py <project>   # target 必填;meta 无默认目标
 ```
 
 产物先过结构合法与概念解析,再过各技能自己的语义抽查,才允许进入下游(Layer 2 治理/编排)。

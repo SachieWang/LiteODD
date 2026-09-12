@@ -1,5 +1,5 @@
 [project]
-name = "dsh-meta-checker"
+name = "methodology-checker"
 version = "1.0.0"
 description = "Methodology Layer 0 compliance checker (three invariants)"
 requires-python = ">=3.11"

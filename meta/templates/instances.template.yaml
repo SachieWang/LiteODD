@@ -1,0 +1,20 @@
+# =============================================================================
+# 对象层模板 —— ontology/instances.yaml  (复制到 targets/<project>/ontology/)
+# -----------------------------------------------------------------------------
+# 目标项目本体实例。每个 id 唯一;instantiateOf 必须指向
+# /meta/ontology/frame.yaml 中的通用类型:
+#   Assembly | Component | Seam | ExecutionUnit | PersistentState | EventStream | ContextBoundary
+# 本模板为通用模板,不含任何具体目标内容。
+# =============================================================================
+
+schemaVersion: 1.0
+frame: /meta/ontology/frame.yaml
+
+instances:
+  - id: "sp:<concept-slug>"
+    instantiateOf: <FrameType>
+    note: "<该实例是什么>"
+
+  - id: "sp:<another-concept>"
+    instantiateOf: <FrameType>
+    note: "<说明>"

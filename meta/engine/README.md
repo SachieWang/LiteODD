@@ -25,15 +25,24 @@
 - **不调用 openspec CLI**,不要求在某个 agent harness 内运行。
 - OpenSpec 仅是当前仓库自管自的环境选择,引擎本身工具无关。
 
+## 对象层契约(首个阶段 realm-check)
+
+DAG 首阶段 `realm-check` 用确定性规则 `realm_structure` 校验目标对象层必须含:
+`ontology/{instances,components,sources}.yaml` 且结构合法(实例 `instantiateOf` 指向 frame 类型、
+组件 `ref` 可解析到实例、来源 id 唯一且有 `kind`)。**这是 `components.yaml` 首次被机器校验。**
+创建请套用 `/meta/templates/*.template.yaml`。
+
 ## 用法
+
+**target 必填**——meta 不内嵌默认目标;缺目标会报错。
 
 ```bash
 # 全链跑通(把 human 审批视为已确认,非交互验证)
-uv run --project meta/scripts python meta/engine/engine.py targets/dsh --assume-approval
+uv run --project meta/scripts python meta/engine/engine.py targets/<project> --assume-approval
 # 默认:arch-assess 审批点 HOLD,等显式人工确认(人环暂停)
-uv run --project meta/scripts python meta/engine/engine.py targets/dsh
+uv run --project meta/scripts python meta/engine/engine.py targets/<project>
 # 审计
-cat targets/dsh/.audit/run-*.jsonl
+cat targets/<project>/.audit/run-*.jsonl
 ```
 
 ## add-only 演进策略(防未来破坏性变更)

@@ -76,13 +76,16 @@ def main(argv=None) -> int:  # noqa: ANN001
     a = p.parse_args(argv)
 
     orch = load_orchestrator(a.orchestrator)
-    target = pathlib.Path(a.target if a.target else orch["target"])
+    if not a.target:
+        log("[fatal] target is required: pass <target-dir> (meta tooling embeds no default target)")
+        return 2
+    target = pathlib.Path(a.target)
     if not target.exists():
         log(f"[fatal] target not found: {target}")
         return 1
 
     instances, itypes = gr.load_target_context(target)
-    ctx = (instances, itypes)
+    ctx = {"target": target, "instances": instances, "itypes": itypes}
     log(f"[engine] target={target} schemaVersion={orch.get('schemaVersion')}")
     log(f"[engine] forward-compat noted: {orch.get('forwardCompatibility', {}).get('note', '')}")
 

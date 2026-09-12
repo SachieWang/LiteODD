@@ -10,8 +10,8 @@
 
 schemaVersion: "1.0"
 
-# 目标项目(相对本仓库根);也可被 engine 参数覆盖
-target: "targets/dsh"
+# 目标项目由运行时参数提供(engine 的第一个位置参数或 --target)。
+# meta 层不内嵌任何具体目标——本文件保持通用。
 
 # —— forward-compat 可选字段(声明,暂不实现语义;引擎须容忍)——
 # 将来可扩展:retry(失败重试)、parallel(并行执行)、on_fail(失败策略),
@@ -20,10 +20,16 @@ forwardCompatibility:
   note: "per-stage retry/parallel/on_fail 均已声明为可选,当前语义未启用"
 
 stages:
-  - id: req-understand
+  - id: realm-check
     deps: []
+    artifacts: []                                   # 无 artifact;规则读取 ctx["target"] 校验对象层结构
+    gate: [realm_structure]
+    approval: none
+
+  - id: req-understand
+    deps: [realm-check]
     artifacts: ["artifacts/requirements/*.json"]
-    gate: [schema_requirement, concept_ref, provenance_complete]
+    gate: [schema_requirement, concept_ref, provenance_complete, provenance_resolvable]
     approval: none
     on_fail: halt            # forward-compat 声明(未实现)
 

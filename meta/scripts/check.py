@@ -2,7 +2,7 @@
 """
 Methodology Layer 0 — 单一合规校验脚本 (three invariants).
 
-对任意目标项目(默认 ./targets/dsh)的 artifact 集,以及该项目本体实例,
+对任意目标项目(目标由调用方显式提供)的 artifact 集,以及该项目本体实例,
 执行三段不变量(见 specs/methodology/meta-schemas):
 
   I1  schemaVersion 存在        —— 元层版本化
@@ -44,7 +44,10 @@ def load_yaml(path: pathlib.Path):
 
 
 def main() -> int:
-    target = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path("targets/dsh")
+    if len(sys.argv) < 2:
+        print("usage: check.py <target-project-dir>   # target is required; meta tooling embeds no default target")
+        return 2
+    target = pathlib.Path(sys.argv[1])
     if not target.exists():
         print(f"[fatal] target dir not found: {target}")
         return 1
