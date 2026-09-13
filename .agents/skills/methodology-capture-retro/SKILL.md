@@ -1,6 +1,6 @@
 ---
 name: methodology-capture-retro
-description: 方法论复盘捕获技能——把一次实践复盘(有效/失效的做法、审计证据)按 retro.md 的字段契约写成一条候选 YAML(meta/evolution/retro/<id>.yaml),再交给 methodology-gate 判定。当用户想沉淀经验、把实践反馈喂回方法论、或说"记一条复盘/提一个改进候选"时使用。
+description: 方法论复盘捕获技能——把一次实践复盘(有效/失效的做法、审计证据)按 retro.md 的字段契约写成一条候选 YAML(对象层 targets/<project>/evolution/retro/<id>.yaml),再交给 methodology-gate 判定。当用户想沉淀经验、把实践反馈喂回方法论、或说"记一条复盘/提一个改进候选"时使用。
 metadata:
   author: methodology-integrations
   version: "1.0"
@@ -40,12 +40,13 @@ metadata:
    `id` 是谁?`signal` 主张什么?`evidence` 钉在哪条客观记录上?`target` 落在哪类 meta 契约上?
 3. **先有 change,再有候选**:`changerecord` 指向一个**真实存在**的版本化 change 目录。没有它,候选必然在条件①被拒——这正是设计意图(捕获阶段就带版本化意识)。
 4. **判定 add-only**:这次改动是"新增可选字段 / 新注册项 / 新类型",还是"删/改必填/静默改语义"?后者把 `addonly` 填 `false`,并预期被拒;正确的做法是改写为新增兼容,或走"新版本并存"。
-5. **落盘**:写到 `meta/evolution/retro/<id>.yaml`,结构以顶层 `candidate:` 开头。
+5. **落盘**:写到**对象层** `targets/<project>/evolution/retro/<id>.yaml`,结构以顶层 `candidate:` 开头。
+   > **不写 meta**:`meta/evolution/retro/` 只放模板与通用示例(`accept-example` / `reject-example`);**目标专属实践记录一律进对象层**——见 `meta/evolution/README.md` 的「实践记录放哪」与 `object-realm-contract`。
 6. **交闸门判定**:调用 `methodology-gate` 技能(或 `gateway.py judge --candidate <path> [--target T]`)。判定 ACCEPT 后,吸收 = 发起/落地那条方法论 change。
 
 ## 输出 Schema Output
 
-一份候选 YAML(写入 `meta/evolution/retro/<id>.yaml`):
+一份候选 YAML(写入**对象层** `targets/<project>/evolution/retro/<id>.yaml`):
 
 ```yaml
 candidate:
@@ -64,7 +65,7 @@ candidate:
 - 七个字段齐全;`target` 是五选一封闭枚举;
 - `changerecord` 指向**存在**的目录(不是占位符);
 - `evidence` 指向可检验的实体(审计轨迹/产物),不是断言;
-- 落盘位置正确,且**未触碰任何 meta 契约与 `targets/` 产物**;
+- 落盘位置正确(**对象层** `targets/<project>/evolution/retro/`),且**未触碰任何 meta 契约**;目标的 `artifacts/` 产物同样不得改动(复盘记录是新增的实践记录,不是 artifact);
 - 不自行宣告"吸收完成"——吸收由 change 流程决定。
 
 ## 边界 Boundaries

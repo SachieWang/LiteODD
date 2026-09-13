@@ -17,7 +17,7 @@ metadata:
 
 ## 触发条件 Trigger
 
-- 有一条复盘候选(`meta/evolution/retro/*.yaml`)要判定能否吸收;或
+- 有一条复盘候选(对象层 `targets/<project>/evolution/retro/*.yaml`;通用示例见 `meta/evolution/retro/`)要判定能否吸收;或
 - 改动 `meta/`(frame / metaschema / skill / gate / method)之后,要确认没把基准跑退化;或
 - 用户说"跑闸门 / 判定候选 / 基准回归 / 能不能吸收这个改进"。
 
