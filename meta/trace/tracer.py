@@ -5,7 +5,7 @@
 # 子命令:
 #   verify <target>          全局链接完整性(确定性,硬门):可解析 / id 唯一 /
 #                            ADR supersedes 存在且无环 / 取代状态一致
-#   report <target>          覆盖度指标(非门):需求下游覆盖 + 孤儿概念
+#   report <target>          覆盖度指标(非门):需求下游覆盖 + 孤儿概念 + 关系类型一致性
 #   refs   <target> <key>    反向查询:概念或 artifact id 被谁引用
 #   why    <target> <REQ-id> 某需求的下游链(概念 -> 引用的下游 artifact)
 # 纯内存计算,无图数据库/推理机。文件名 tracer.py 以避免与标准库 trace 冲突。
@@ -168,6 +168,45 @@ def coverage(target) -> dict:
     return {"total": len(reqs), "covered": covered, "uncovered": uncovered, "orphans": orphans}
 
 
+def _frame_relation_types() -> set[str]:
+    """frame 声明的通用关系类型 id(容忍 `- id: x` 与 `- x` 两种写法)。"""
+    f = META / "ontology" / "frame.yaml"
+    out: set[str] = set()
+    if not f.exists():
+        return out
+    d = checker.load_yaml(f) or {}
+    for r in d.get("relationTypes") or []:
+        if isinstance(r, dict) and r.get("id"):
+            out.add(str(r["id"]))
+        elif isinstance(r, str) and r:
+            out.add(r)
+    return out
+
+
+def relation_conformance(target) -> dict:
+    """关系类型一致性(指标,**非门**):domain model 用到的关系类型是否落在 frame 声明内。
+
+    只报告不拦截——frame 的关系类型目前尚无含义与方向约定,在有语义之前不设硬门。
+    """
+    target = pathlib.Path(target)
+    declared = sorted(_frame_relation_types())
+    dset = set(declared)
+    used: dict[str, list[str]] = {}
+    for a in _load(target):
+        if a["key"] != "domainModel":
+            continue
+        for rel in a["body"].get("relationships") or []:
+            if isinstance(rel, dict) and rel.get("type"):
+                used.setdefault(str(rel["type"]), []).append(str(a["id"] or a["file"].name))
+    return {
+        "declared": declared,
+        "used": used,
+        "used_declared": sorted(t for t in used if t in dset),
+        "undeclared": sorted(t for t in used if t not in dset),
+        "unused": sorted(t for t in declared if t not in used),
+    }
+
+
 def refs(target, key: str) -> dict:
     target = pathlib.Path(target)
     arts = _load(target)
@@ -228,6 +267,14 @@ def main(argv=None) -> int:  # noqa: ANN001
         print(f"  orphan concepts (referenced by 0 artifacts): {len(r['orphans'])}")
         if r["orphans"]:
             print(f"    {r['orphans']}")
+        rc = relation_conformance(target)
+        print(f"  relation types: {len(rc['used_declared'])}/{len(rc['declared'])} declared types used")
+        if rc["undeclared"]:
+            print(f"    undeclared (used but not declared in frame): {rc['undeclared']}")
+            for t in rc["undeclared"]:
+                print(f"      {t} <- {', '.join(sorted(set(rc['used'][t])))}")
+        if rc["unused"]:
+            print(f"    declared but never used: {rc['unused']}")
         return 0
     if cmd == "refs":
         if len(rest) < 2:
