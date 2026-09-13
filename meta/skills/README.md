@@ -23,9 +23,10 @@
 uv run --project meta/scripts python meta/scripts/check.py <project>   # target 必填;meta 无默认目标
 ```
 
-产物先过结构合法与概念解析,再过各技能自己的语义抽查,才允许进入下游(Layer 2 治理/编排)。
+产物先过结构合法与概念解析,再过各技能自己的语义抽查,才允许进入下游(Layer 2 治理/编排)。进入 DAG 后还会叠加引擎的确定性闸门规则(如需求理解的 `provenance_resolvable`,见 `meta/engine/gate_rules.py`)。
 
 ## 与 Layer 0 的关系
 
-- 消费:`/meta/ontology/frame.yaml`(类型)、`/meta/metaschema/*.schema.json`(结构)、目标项目 `instances.yaml`/`components.yaml`(实例)。
-- 不修改 Layer 0;只把\"按脊柱产出\"固化成可执行程序。
+- 消费:`/meta/ontology/frame.yaml`(类型)、`/meta/metaschema/*.schema.json`(结构)、目标项目 `ontology/{instances,components,sources}.yaml`(实例/组件/来源,三份必需)。
+- 新项目可套用 `/meta/templates/*.template.yaml` 建立对象层。
+- 不修改 Layer 0;只把"按脊柱产出"固化成可执行程序。
