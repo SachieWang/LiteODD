@@ -85,6 +85,8 @@
 
 方法论本体(meta/ 全部)已入库;实践样例(instances/产物/复盘记录)存于忽略的 `targets/`,演示见教程的 eShop-demo 模拟案例。
 
+**「可复用」现有两份证据**:第一个目标是 `targets/dsh`(同源 dogfood);第二个是**异质**目标 `targets/plant-maint`(制造业设备维保),在其中以 **meta 层零改动**跑通五层全链——7/7 概念类型、8/8 关系类型均有真实用例,需求下游覆盖 100%、孤儿概念 0。结论为「**未被证伪**」而非「已证通用」:作者事先知道词表,不能完全排除拟合;限制与 5 项缺口(G1–G5)见该 change 的 `tasks.md`。
+
 ---
 
 ## 快速上手
@@ -147,6 +149,6 @@ uv run --project meta/scripts python meta/integrations/gateway.py gate --target 
 ## 版本库状态
 
 - 提交基线:`37f4f79`(Layer 0/1)→ `ffb40c5`(Layer 2)→ `69768f3`(Layer 3)→ `950a4f4`(来源可校验 + 对象层契约)→ `6c45c15`(Layer 4)→ `add6b6d`(Layer 2-4 文档回填)→ `5ee9242`(集成适配层)。
-- 归档 change:见 `openspec/changes/archive/`(methodology-layer0 / layer1-skills / layer2-harness / layer3-evolution / gate-provenance-resolvable / object-realm-contract / layer4-traceability / add-integration-adapter / method-seam-instance-first)。
+- 归档 change:见 `openspec/changes/archive/`(methodology-layer0 / layer1-skills / layer2-harness / layer3-evolution / gate-provenance-resolvable / object-realm-contract / layer4-traceability / add-integration-adapter / method-seam-instance-first / relation-conformance-report / add-heterogeneous-target)。
 - 主规格:见 `openspec/specs/methodology/`(11 个能力)。
 - 实践产物 `targets/` 不入库(待独立工具仓分发)。
