@@ -146,7 +146,7 @@ uv run --project meta/scripts python meta/integrations/gateway.py gate --target 
 
 ## 版本库状态
 
-- 提交基线:`37f4f79`(Layer 0/1)→ `ffb40c5`(Layer 2)→ `69768f3`(Layer 3)→ `950a4f4`(来源可校验 + 对象层契约)→ `6c45c15`(Layer 4);另有 docs 提交 `8481bab`。
-- 归档 change:见 `openspec/changes/archive/`(methodology-layer0 / layer1-skills / layer2-harness / layer3-evolution / gate-provenance-resolvable / object-realm-contract / layer4-traceability)。
-- 主规格:见 `openspec/specs/methodology/`(10 个能力)。
+- 提交基线:`37f4f79`(Layer 0/1)→ `ffb40c5`(Layer 2)→ `69768f3`(Layer 3)→ `950a4f4`(来源可校验 + 对象层契约)→ `6c45c15`(Layer 4)→ `add6b6d`(Layer 2-4 文档回填)→ `5ee9242`(集成适配层)。
+- 归档 change:见 `openspec/changes/archive/`(methodology-layer0 / layer1-skills / layer2-harness / layer3-evolution / gate-provenance-resolvable / object-realm-contract / layer4-traceability / add-integration-adapter / method-seam-instance-first)。
+- 主规格:见 `openspec/specs/methodology/`(11 个能力)。
 - 实践产物 `targets/` 不入库(待独立工具仓分发)。
