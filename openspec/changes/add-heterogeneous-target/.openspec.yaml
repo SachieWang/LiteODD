@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-13
+# 本 change 是**实践**活动:预期 meta 层零改动,产出是"通用性是否成立"的证据。
+# 若实践中发现必须改 meta,不得在本 change 内就地改,而应另开方法论 change。
+skip_specs: true
