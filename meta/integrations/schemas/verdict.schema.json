@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ontology-driven-design-system/meta/integrations/schemas/verdict.schema.json",
+  "title": "Methodology Integration Gateway Envelope (v1.0)",
+  "description": "集成适配层的唯一机器可读输出契约。gateway.py 的 stdout 恰好是一个本对象;exit code 与 gateway.exitCode 一致(0 通过 / 1 未通过 / 2 用法或基础设施错误)。判决的权威来源始终是 core 脚本的 exit code,本信封只是搬运与结构化。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["gateway", "target", "candidate", "steps", "judge", "snapshot", "error"],
+  "properties": {
+    "gateway": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "command", "verdict", "exitCode", "at"],
+      "properties": {
+        "schemaVersion": { "type": "string", "const": "1.0" },
+        "command": { "type": "string", "enum": ["snapshot", "check", "bench", "judge", "gate"] },
+        "verdict": { "type": "string", "enum": ["pass", "fail"] },
+        "exitCode": { "type": "integer", "enum": [0, 1, 2, 124] },
+        "at": { "type": "string", "description": "UTC ISO-8601 时间戳(审计用,不参与判决)。" }
+      }
+    },
+    "target": {
+      "type": ["string", "null"],
+      "description": "本命令作用的目标项目目录(相对仓库根),未涉及为 null。"
+    },
+    "candidate": {
+      "type": ["string", "null"],
+      "description": "本命令作用的复盘候选 YAML 路径(相对仓库根),未涉及为 null。"
+    },
+    "steps": {
+      "type": "array",
+      "description": "按执行顺序排列的 core 步骤;每步的 ok 直接来自该 core 脚本的 exit code。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "ok", "exitCode", "summary", "detail"],
+        "properties": {
+          "name": { "type": "string", "description": "core 步骤名,如 bench.py / judge.py / check.py。" },
+          "ok": { "type": "boolean" },
+          "exitCode": { "type": "integer" },
+          "summary": { "type": "string", "description": "core 脚本输出的最后一行(权威人读摘要)。" },
+          "detail": { "type": "string", "description": "core 脚本输出的尾部若干行,便于定位失败。" }
+        }
+      }
+    },
+    "judge": {
+      "description": "Layer 3 收敛裁判结果;非 judge/gate 命令或未提供候选时为 null。",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "verdict", "conditions", "notes", "verdictLine"],
+          "properties": {
+            "id": { "type": ["string", "null"], "description": "候选 id(取自 judge 输出,仅展示)。" },
+            "verdict": { "type": "string", "enum": ["ACCEPT", "REJECT/DEFER"] },
+            "conditions": {
+              "type": "object",
+              "description": "judge 三条收敛条件的结构化搬运;pass=ok[N],fail=FAIL[N],unknown=judge 未点名(判决仍以 verdict/exitCode 为准)。",
+              "additionalProperties": false,
+              "required": ["record", "bench", "addonly"],
+              "properties": {
+                "record": { "type": "string", "enum": ["pass", "fail", "unknown"], "description": "① 已记录为版本化方法论 change" },
+                "bench": { "type": "string", "enum": ["pass", "fail", "unknown"], "description": "② 基准回归通过" },
+                "addonly": { "type": "string", "enum": ["pass", "fail", "unknown"], "description": "③ add-only 兼容" }
+              }
+            },
+            "notes": { "type": "array", "items": { "type": "string" }, "description": "judge 打印的条件明细,原样保留。" },
+            "verdictLine": { "type": "string", "description": "judge 的 `[judge] ...` 结语行。" }
+          }
+        }
+      ]
+    },
+    "snapshot": {
+      "description": "只读上下文快照(感知面);仅 snapshot 命令产出,其余为 null。",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["root", "frame", "metaschemas", "orchestratorStages", "absorptionTargets", "candidates", "targets", "selectedTarget", "gates"],
+          "properties": {
+            "root": { "type": "string" },
+            "frame": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["schemaVersion", "conceptTypes", "relationTypes"],
+              "properties": {
+                "schemaVersion": { "type": ["number", "string", "null"] },
+                "conceptTypes": { "type": "array", "items": { "type": "string" } },
+                "relationTypes": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "metaschemas": { "type": "array", "items": { "type": "string" } },
+            "orchestratorStages": { "type": "array", "items": { "type": "string" } },
+            "absorptionTargets": { "type": "array", "items": { "type": "string", "enum": ["frame", "metaschema", "skill", "gate", "method"] } },
+            "candidates": {
+              "type": "array",
+              "description": "meta/evolution/retro/*.yaml 的只读视图。快照不做裁决,只展示候选自述字段与 change 记录是否存在。",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "id", "target", "benchStatus", "addOnly", "changeRecord", "changeRecordExists"],
+                "properties": {
+                  "path": { "type": "string" },
+                  "id": { "type": ["string", "null"] },
+                  "target": { "type": ["string", "null"] },
+                  "benchStatus": { "type": ["string", "null"] },
+                  "addOnly": { "type": ["boolean", "null"] },
+                  "changeRecord": { "type": ["string", "null"] },
+                  "changeRecordExists": { "type": "boolean" }
+                }
+              }
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "artifacts", "hasObjectRealm"],
+                "properties": {
+                  "path": { "type": "string" },
+                  "artifacts": { "type": "integer" },
+                  "hasObjectRealm": { "type": "boolean", "description": "对象层三份必需文件是否齐备(object-realm-contract)。" }
+                }
+              }
+            },
+            "selectedTarget": { "type": ["string", "null"] },
+            "gates": {
+              "type": "object",
+              "description": "唯一权威入口的命令行(供 harness 适配壳直接引用,避免各自拼路径)。",
+              "additionalProperties": false,
+              "required": ["check", "bench", "judge", "engine", "gateway"],
+              "properties": {
+                "check": { "type": "string" },
+                "bench": { "type": "string" },
+                "judge": { "type": "string" },
+                "engine": { "type": "string" },
+                "gateway": { "type": "string" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "error": {
+      "type": ["string", "null"],
+      "description": "基础设施/用法错误说明(exitCode=2 时非空);不含判决失败(那是 verdict=fail)。"
+    }
+  }
+}

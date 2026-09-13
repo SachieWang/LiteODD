@@ -5,3 +5,6 @@ meta/scripts/.venv/
 __pycache__/
 
 targets/
+
+# 集成适配层:由 dynamic/*.js 生成的 cordis_define 派生物(不手工维护)
+meta/integrations/dsh/dynamic/define.payload.json

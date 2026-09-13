@@ -12,6 +12,7 @@
 | `engine/` | Layer 2 确定性编排器(DAG / 闸门注册 / 审批三态 / 审计) |
 | `evolution/` | Layer 3 反馈环(复盘模板 / 收敛裁判 / 基准回归) |
 | `trace/` | Layer 4 可追溯层(全局链接完整性校验 / 覆盖度指标 / 反向查询) |
+| `integrations/` | **外挂层**:集成适配(单一网关 `gateway.py` + 统一 JSON 信封 + DSH Cordis 插件壳)。不属五层,不改任何上层契约;harness 换代只改这里 |
 
 ## 放置规则(必须遵守)
 
