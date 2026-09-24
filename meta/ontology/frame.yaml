@@ -47,6 +47,10 @@ conceptTypes:
     note: 隔离/作用域边界(限界上下文、作用域、权限/可见性裁剪)
     attributes: [isolation, shadowable, restricts]
 
+  - id: Rule
+    note: 可版本化、约束其它概念的规则/规程/约束(经 constrains 关系表达约束对象);区别于 PersistentState——Rule 是"必须"而非"被读写的数据"
+    attributes: [version, effectiveFrom, appliesTo]
+
 # —— 通用关系类型(8 条)——
 # 每条带:description(一句话含义)与 direction(方向约定)。
 # direction 统一写 subject→object:domain-model 的 relationships[].from 即 subject、
