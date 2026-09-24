@@ -14,6 +14,8 @@ import json
 import pathlib
 import sys
 
+import yaml
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "scripts"))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "trace"))
 import check as checker  # 复用 ARTIFACT_SCHEMA / load_yaml
@@ -50,36 +52,61 @@ def _load_file(path):
 def _frame_types():
     if not checker.FRAME.exists():
         return set()
-    d = checker.load_yaml(checker.FRAME)
+    d, err = _read_yaml(checker.FRAME)
+    if err:
+        return set()
     return {t.get("id") for t in d.get("conceptTypes", []) if isinstance(t, dict)}
 
 
+def _read_yaml(path: pathlib.Path):
+    """受保护的对象层 YAML 读取:解析失败时返回可读错误,不抛异常。
+
+    返回 (data, error);error 非空时 data 为 None,文本点名 文件/行/原因,
+    让使用者直接定位,而不是把未捕获的调用栈抛到引擎顶层(F 的 G5)。
+    """
+    try:
+        return checker.load_yaml(path), None
+    except yaml.YAMLError as exc:  # ScannerError / ParserError 等
+        mark = getattr(exc, "problem_mark", None)
+        loc = f"行: {mark.line + 1}" if mark else "行: 未知"
+        reason = getattr(exc, "problem", None) or str(exc).splitlines()[0]
+        return None, f"文件: {path} | {loc} | 原因: {reason}"
+    except OSError as exc:
+        return None, f"文件: {path} | 行: 未知 | 原因: 读取失败 {exc}"
+
+
 def load_target_context(target: pathlib.Path):
-    """返回 (instances, instance_types)。"""
+    """返回 (instances, instance_types, errors)。errors 非空表示 instances.yaml 无法解析。"""
     inst = pathlib.Path(target) / "ontology" / "instances.yaml"
     instances: set[str] = set()
     itypes: dict[str, str] = {}
+    errors: list[str] = []
     if inst.exists():
-        d = checker.load_yaml(inst)
+        d, err = _read_yaml(inst)
+        if err:
+            return set(), {}, [err]
         for it in d.get("instances", []):
             if isinstance(it, dict) and it.get("id"):
                 instances.add(it["id"])
                 itypes[it["id"]] = it.get("instantiateOf")
-    return instances, itypes
+    return instances, itypes, errors
 
 
 def load_sources(target: pathlib.Path):
-    """读取目标侧来源注册表 ontology/sources.yaml,返回 (ids, entries)。"""
+    """读取目标侧来源注册表 ontology/sources.yaml,返回 (ids, entries, errors)。"""
     f = pathlib.Path(target) / "ontology" / "sources.yaml"
     ids: set[str] = set()
     entries: dict[str, dict] = {}
+    errors: list[str] = []
     if f.exists():
-        d = checker.load_yaml(f)
+        d, err = _read_yaml(f)
+        if err:
+            return set(), {}, [err]
         for s in d.get("sources", []):
             if isinstance(s, dict) and s.get("id"):
                 ids.add(s["id"])
                 entries[s["id"]] = s
-    return ids, entries
+    return ids, entries, errors
 
 
 def _schema_of(key: str):
@@ -207,8 +234,8 @@ def provenance_resolvable(files, ctx):
     自由文本(不可校验)一律不合规 —— 杜绝伪溯源(如编造的访谈标签)。
     """
     target = pathlib.Path(ctx["target"])  # 目标由运行时提供;meta 不内嵌默认目标
-    ids, _ = load_sources(target)
-    errs = []
+    ids, _, src_errs = load_sources(target)
+    errs = list(src_errs)
     for f, k, doc, perr in _for_each_key(files, {"requirement"}):
         if perr:
             continue
@@ -290,7 +317,10 @@ def realm_structure(files, ctx):
     if not inst_file.exists():
         errs.append("missing ontology/instances.yaml")
     else:
-        d = checker.load_yaml(inst_file) or {}
+        d, yerr = _read_yaml(inst_file)
+        if yerr:
+            errs.append(yerr)
+            return errs
         entries = d.get("instances") or []
         if not entries:
             errs.append("instances.yaml: empty or missing `instances`")
@@ -313,7 +343,10 @@ def realm_structure(files, ctx):
     if not comp_file.exists():
         errs.append("missing ontology/components.yaml")
     else:
-        d = checker.load_yaml(comp_file) or {}
+        d, yerr = _read_yaml(comp_file)
+        if yerr:
+            errs.append(yerr)
+            return errs
         entries = d.get("components") or []
         if not entries:
             errs.append("components.yaml: empty or missing `components`")
@@ -332,7 +365,10 @@ def realm_structure(files, ctx):
     if not src_file.exists():
         errs.append("missing ontology/sources.yaml")
     else:
-        d = checker.load_yaml(src_file) or {}
+        d, yerr = _read_yaml(src_file)
+        if yerr:
+            errs.append(yerr)
+            return errs
         entries = d.get("sources") or []
         if not entries:
             errs.append("sources.yaml: empty or missing `sources`")

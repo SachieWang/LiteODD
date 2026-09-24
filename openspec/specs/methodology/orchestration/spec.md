@@ -42,6 +42,17 @@ Gate checks SHALL be registered as `rule-id → deterministic function` entries 
 - **WHEN** a new consistency check is added (e.g. dangling-reference or relation-type legality)
 - **THEN** it is added as a new registry entry and runs within the existing engine with no engine-core change
 
+### Requirement: Malformed object-layer YAML reported as a readable gate error
+When the engine reads an object-layer YAML file (instances, components, or sources) that fails to parse, it SHALL report a readable gate error naming the file and, when available, the line and cause, and SHALL NOT surface an uncaught parser traceback to the top level; the run still fails with an exit code of 1.
+
+#### Scenario: Malformed YAML does not crash with a traceback
+- **WHEN** an object-layer YAML file contains an unquoted colon or another parse error
+- **THEN** the engine reports a FAIL naming the file (and line/cause when available) and exits 1 without an uncaught traceback
+
+#### Scenario: Valid YAML is unaffected
+- **WHEN** an object-layer YAML file is well formed
+- **THEN** its parse and all gate determinations behave exactly as before
+
 ### Requirement: Stable producer interface
 A stage node SHALL be defined by a stable interface `{ input, producer, gate }`; the producer (an LLM skill or a deterministic transform) SHALL be swappable per node without changing the engine, gates, or DAG semantics.
 

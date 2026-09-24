@@ -84,7 +84,12 @@ def main(argv=None) -> int:  # noqa: ANN001
         log(f"[fatal] target not found: {target}")
         return 1
 
-    instances, itypes = gr.load_target_context(target)
+    instances, itypes, ctx_errs = gr.load_target_context(target)
+    if ctx_errs:
+        log("[HALT] instances.yaml 解析失败,无法构建门控上下文:")
+        for e in ctx_errs:
+            log(f"       - {e}")
+        return 1
     ctx = {"target": target, "instances": instances, "itypes": itypes}
     log(f"[engine] target={target} schemaVersion={orch.get('schemaVersion')}")
     log(f"[engine] forward-compat noted: {orch.get('forwardCompatibility', {}).get('note', '')}")
