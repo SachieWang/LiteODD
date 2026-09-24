@@ -51,6 +51,10 @@ conceptTypes:
     note: 可版本化、约束其它概念的规则/规程/约束(经 constrains 关系表达约束对象);区别于 PersistentState——Rule 是"必须"而非"被读写的数据"
     attributes: [version, effectiveFrom, appliesTo]
 
+  - id: Actor
+    note: 执行或参与执行、受规则约束的人类/角色/组织主体;区别于 ExecutionUnit——Actor 是"谁",ExecutionUnit 是"做什么"
+    attributes: [role, orgUnit]
+
 # —— 通用关系类型(8 条)——
 # 每条带:description(一句话含义)与 direction(方向约定)。
 # direction 统一写 subject→object:domain-model 的 relationships[].from 即 subject、

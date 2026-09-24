@@ -7,11 +7,11 @@ Defines the meta-layer generic ontology frame: the concept types, relation types
 ## Requirements
 
 ### Requirement: Generic concept type set
-The frame SHALL define exactly eight generic concept types as the minimum spine: `Assembly` (how a system is composed/layered), `Component` (what a system is decomposed into), `Seam` (a replaceable port-adapter boundary with contract/providers/consumers), `ExecutionUnit` (a triggerable, bounded, side-effecting unit of work), `PersistentState` (state that must be reconstructable/traceable), `EventStream` (producers/observers/ordering), `ContextBoundary` (an isolation/scope boundary), and `Rule` (a versioned rule, constraint, or procedure that constrains other concepts).
+The frame SHALL define exactly nine generic concept types as the minimum spine: `Assembly` (how a system is composed/layered), `Component` (what a system is decomposed into), `Seam` (a replaceable port-adapter boundary with contract/providers/consumers), `ExecutionUnit` (a triggerable, bounded, side-effecting unit of work), `PersistentState` (state that must be reconstructable/traceable), `EventStream` (producers/observers/ordering), `ContextBoundary` (an isolation/scope boundary), `Rule` (a versioned rule, constraint, or procedure that constrains other concepts), and `Actor` (a human, role, or organizational actor that executes or participates in execution units and is subject to rules).
 
-#### Scenario: All eight types present
+#### Scenario: All nine types present
 - **WHEN** an agent inspects the meta ontology frame
-- **THEN** it lists exactly the eight concept types named above and no others
+- **THEN** it lists exactly the nine concept types named above and no others
 
 ### Requirement: Generic relation type set
 The frame SHALL define a relation type set including `composes`, `providedBy`, `usedBy`, `triggers`, `writes`, `reads`, `dependsOn`, and `constrains`, usable between the concept types.
