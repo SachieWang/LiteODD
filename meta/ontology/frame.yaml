@@ -48,15 +48,34 @@ conceptTypes:
     attributes: [isolation, shadowable, restricts]
 
 # —— 通用关系类型(8 条)——
+# 每条带:description(一句话含义)与 direction(方向约定)。
+# direction 统一写 subject→object:domain-model 的 relationships[].from 即 subject、
+# .to 即 object;换一个作者也能写出同向的表达(G1 的缺口就是这里没约定)。
 relationTypes:
-  - id: composes        # Assembly 由什么组成
-  - id: providedBy      # 由谁实现/提供
-  - id: usedBy          # 被谁使用/消费
-  - id: triggers        # 触发什么
-  - id: writes          # 写入什么状态/事件
-  - id: reads           # 读取什么
-  - id: dependsOn       # 依赖什么
-  - id: constrains      # 约束什么
+  - id: composes
+    description: 整体由部分组成;subject 为整体,object 为其组成部分
+    direction: 整体 → 部分
+  - id: providedBy
+    description: 能力/服务由其实现方提供;subject 为被提供的能力或接口,object 为提供它的实现
+    direction: 能力/接口 → 实现方
+  - id: usedBy
+    description: 某物被使用者消费;subject 为被使用物,object 为使用者
+    direction: 被使用物 → 使用者
+  - id: triggers
+    description: 触发一次执行或一个事件;subject 为触发源,object 为被触发的执行单元/事件
+    direction: 触发源 → 被触发者
+  - id: writes
+    description: 向持久态写入;subject 为执行单元/事件,object 为被写入的持久态
+    direction: 写入者 → 被写入的持久态
+  - id: reads
+    description: 从持久态读取;subject 为执行单元/事件,object 为被读取的持久态
+    direction: 读取者 → 被读取的持久态
+  - id: dependsOn
+    description: 依赖另一个概念(功能性或前置性);subject 为依赖方,object 为被依赖方
+    direction: 依赖方 → 被依赖方
+  - id: constrains
+    description: 约束其它概念的可取行为(如规程约束工单);subject 为约束,object 为被约束者
+    direction: 约束 → 被约束者
 
 # —— 类型/实例分离规则(元层治理对象层的两个抓手之一)——
 separation:

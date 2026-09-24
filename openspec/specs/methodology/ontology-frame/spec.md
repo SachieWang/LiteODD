@@ -20,6 +20,17 @@ The frame SHALL define a relation type set including `composes`, `providedBy`, `
 - **WHEN** an instance declares a relationship between two concepts
 - **THEN** the relationship MUST use a relation type from the frame's set, or the instance is rejected as non-compliant
 
+### Requirement: Relation types carry semantics and direction
+Each relation type declared in the ontology frame SHALL carry an optional one-line description of its meaning and a subject-to-object direction convention, so that relationship expressions using it are consistent across authors and targets instead of being an opaque id list.
+
+#### Scenario: Semantics and direction recorded
+- **WHEN** an author reads a relation type in the frame
+- **THEN** it has a `description` stating what the relation means and a `direction` stating which endpoint is the subject and which is the object
+
+#### Scenario: Existing ids unchanged
+- **WHEN** the frame is updated
+- **THEN** the eight relation id values (`composes`, `providedBy`, `usedBy`, `triggers`, `writes`, `reads`, `dependsOn`, `constrains`) remain unchanged and no relation is removed
+
 ### Requirement: Lightweight per-type attributes
 Each concept type SHALL carry a small optional set of typical attributes (for example `Seam` has `contract`, `providers`, `consumers`) that instances may fill; the frame does NOT mandate completeness of attributes.
 
