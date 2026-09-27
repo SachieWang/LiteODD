@@ -1,0 +1,6 @@
+# 方法论适配壳 —— 常驻 bundle patch(Host-only,第一步)
+# 安装:dsh plugin --profile <name> add <本目录> 或 plugin_manager install_bundle。
+# 相对路径(./lib/index.js)锚定在本 patch 文件旁。
+- insert:
+    - id: methodology-adapter
+      name: './lib/index.js'

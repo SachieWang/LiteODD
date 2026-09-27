@@ -23,9 +23,9 @@
 //   DSH_PACKAGE_ROOT=/path/to/node_modules/@deepseek-ai/dsh node ... # 指定 DSH 安装位置
 // =============================================================================
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, mkdirSync, symlinkSync, rmSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import vm from 'node:vm'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))          // .../dsh/tests
@@ -410,6 +410,137 @@ try {
   renderError = error
 }
 check('组件可渲染(空快照分支)', renderError === null && !!element, renderError && renderError.message)
+
+// ===========================================================================
+// 3. 常驻 bundle(add-resident-bundle):静态模块 + 与动态半的等价断言
+// ===========================================================================
+console.log('\n== resident bundle ==')
+const BUNDLE_DIR = path.join(DSH_ADAPTER, 'bundle')
+const bundleEntry = path.join(BUNDLE_DIR, 'lib', 'index.js')
+const coreEntry = path.join(BUNDLE_DIR, 'shared', 'tools.core.js')
+
+// 3.1 形态:package.json / patch / lib / shared 齐备,patch 行锚定正确
+const pkg = JSON.parse(readFileSync(path.join(BUNDLE_DIR, 'package.json'), 'utf8'))
+check('package.json 带 dsh.bundle.patch', pkg.dsh && pkg.dsh.bundle && pkg.dsh.bundle.patch === './cordis.patch.yml')
+check('package.json main 指向 lib/index.js', pkg.main === 'lib/index.js')
+const patchYml = readFileSync(path.join(BUNDLE_DIR, 'cordis.patch.yml'), 'utf8')
+check('patch 含 methodology-adapter insert 行', /id:\s*methodology-adapter/.test(patchYml) && /'\.\/lib\/index\.js'/.test(patchYml))
+
+// 3.2 装载静态模块:裸 specifier(@deepseek-ai/dsh-tools)需要在 bundle 目录
+//     可达 —— 测试内建一次性 node_modules 软链指向 DSH 安装,结束即清理。
+let bundlePlugin = null
+let bundleError = null
+const linkDir = path.join(BUNDLE_DIR, 'node_modules', '@deepseek-ai')
+const realToolsDir = path.join(DSH_ROOT, 'node_modules', '@deepseek-ai', 'dsh-tools')
+let linkCreated = false
+try {
+  if (!existsSync(linkDir)) {
+    mkdirSync(linkDir, { recursive: true })
+    symlinkSync(realToolsDir, path.join(linkDir, 'dsh-tools'), 'dir')
+    linkCreated = true
+  }
+  bundlePlugin = await import(pathToFileURL(bundleEntry).href)
+} catch (error) {
+  bundleError = error
+}
+check('bundle 模块可装载', bundleError === null, bundleError && bundleError.message)
+check('bundle 导出 name/inject', bundlePlugin && bundlePlugin.name === 'methodology-adapter'
+  && Array.isArray(bundlePlugin.inject) && bundlePlugin.inject.includes('tools') && bundlePlugin.inject.includes('shell'))
+
+// 用与动态半相同的 fakeShell 复用:静态 apply 走 ctx.shell(注入数组),ctx.get 供 workspaceRegistry
+const bundleRegistered = []
+const bundleCtx = {
+  shell: fakeShell,
+  get: (n) => (n === 'workspaceRegistry' ? mockWorkspaceRegistry : undefined),
+  tools: { register: (t) => { bundleRegistered.push(t); return () => {} } },
+}
+let bundleApplyError = null
+try {
+  bundlePlugin.apply(bundleCtx)
+} catch (error) {
+  bundleApplyError = error
+}
+check('bundle apply 无异常', bundleApplyError === null, bundleApplyError && bundleApplyError.stack)
+const bundleNames = bundleRegistered.map(t => t.name).sort()
+check('bundle 注册恰 5 个 methodology_* 工具', bundleNames.length === 5
+  && JSON.stringify(bundleNames) === JSON.stringify(EXPECTED_TOOLS.slice().sort()),
+  'got: ' + bundleNames.join(', '))
+
+// 3.3 execute 走真实信封(与动态半同一 rig)
+cannedEnvelope = envelopes.snapshot
+shellCalls.length = 0
+try {
+  const value = await bundleRegistered.find(t => t.name === 'methodology_status').execute({}, { signal: undefined })
+  check('bundle methodology_status execute 返回对象', value && typeof value === 'object')
+  const statusFromDynamic = registered.find(t => t.name === 'methodology_status')
+  const schema = DSH.valueSchemaSpecToJsonSchema(JSON.parse(JSON.stringify(statusFromDynamic.output.schema)))
+  const violations = DSH.validateJsonSchemaValue(schema, JSON.parse(JSON.stringify(value)), '')
+  check('bundle 值过 STATUS output schema(与动态半同 schema)', violations.length === 0, JSON.stringify(violations).slice(0, 300))
+  const gw = shellCalls.find(c => c.command.includes('.uv-cache'))
+  check('bundle 网关调用钉 workdir', !!gw && gw.workdir === REPO)
+} catch (error) {
+  check('bundle methodology_status execute', false, error.message)
+}
+
+// 3.4 等价断言:shared/tools.core.js 的关键段与动态半逐段一致(防漂移)
+function normalize(src) {
+  return src
+    .replace(/\/\/[^\n]*/g, '')            // 行注释
+    .replace(/\/\*[\s\S]*?\*\//g, '')      // 块注释
+    .replace(/\s+/g, ' ')                  // 空白折叠
+    .trim()
+}
+const coreSrc = readFileSync(coreEntry, 'utf8')
+const hostSrc = readFileSync(path.join(DSH_ADAPTER, 'dynamic', 'methodology.host.js'), 'utf8')
+const libSrc = readFileSync(bundleEntry, 'utf8')
+
+// 逐段:以 marker 为起点做**花括号配对**提取完整定义,去 export 前缀后规范化比对。
+function extractBlock(src, marker) {
+  const i = src.indexOf(marker)
+  if (i < 0) return null
+  const start = src.indexOf('{', i)
+  if (start < 0) return null
+  let depth = 0
+  for (let k = start; k < src.length; k++) {
+    if (src[k] === '{') depth++
+    else if (src[k] === '}') {
+      depth--
+      if (depth === 0) return src.slice(i, k + 1)
+    }
+  }
+  return null
+}
+function stripExport(s) {
+  return s === null ? null : s.replace(/^export\s+/, '')
+}
+function segOf(src, marker) {
+  const raw = extractBlock(src, marker)
+  return raw === null ? null : normalize(stripExport(raw))
+}
+
+// RUNNER 常量:到行尾的表达式,单独处理(无花括号);剥 export 前缀后比对
+const runnerCore = normalize(stripExport((coreSrc.match(/export const RUNNER[\s\S]*?\n/s) || [''])[0]))
+const runnerHost = normalize((hostSrc.match(/const RUNNER[\s\S]*?\n/s) || [''])[0])
+check('等价:RUNNER 常量', runnerCore === runnerHost, runnerCore + '  VS  ' + runnerHost)
+
+check('等价:q() 转义', segOf(coreSrc, 'function q(value)') === segOf(hostSrc, 'function q(value)'))
+check('等价:toGateValue', segOf(coreSrc, 'function toGateValue(env)') === segOf(hostSrc, 'function toGateValue(env)'))
+check('等价:toStatusValue', segOf(coreSrc, 'function toStatusValue(env)') === segOf(hostSrc, 'function toStatusValue(env)'))
+check('等价:GATE_SCHEMA 段', segOf(coreSrc, 'const GATE_SCHEMA = {') === segOf(hostSrc, 'const GATE_SCHEMA = {'))
+check('等价:STATUS_SCHEMA 段', segOf(coreSrc, 'const STATUS_SCHEMA = {') === segOf(hostSrc, 'const STATUS_SCHEMA = {'))
+check('等价:resolveRoot 主体', segOf(libSrc, 'async function resolveRoot') === segOf(hostSrc, 'async function resolveRoot'))
+check('等价:runGateway 主体', segOf(libSrc, 'async function runGateway') === segOf(hostSrc, 'async function runGateway'))
+check('等价:candidateRoots 主体', segOf(libSrc, 'function candidateRoots') === segOf(hostSrc, 'function candidateRoots'))
+
+// 3.5 负向:人为在 shared 源中改一个字符应使等价断言失败(自检的自检,本仓库纪律)
+//     —— 以"断言函数本身能区分"的方式验证:取两个已知不同段确认 normalize/比对不为恒真。
+const notEqual = segOf(coreSrc, 'function q(value)') !== segOf(coreSrc, 'function toGateValue(env)')
+check('等价断言具备区分度(非恒真)', notEqual)
+
+// 3.6 清理测试期软链(bundle 目录不留 node_modules;它属于安装环境的产物)
+if (linkCreated) {
+  try { rmSync(path.join(BUNDLE_DIR, 'node_modules'), { recursive: true, force: true }) } catch { /* 清理失败不致命 */ }
+}
 
 // ===========================================================================
 console.log('\n[verify] ' + (failures === 0 ? 'ALL PASS' : failures + ' FAILURE(S)'))

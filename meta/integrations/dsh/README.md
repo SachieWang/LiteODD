@@ -199,25 +199,26 @@ stderr: error: Project directory `meta/scripts` does not exist
 
 候选去重后,用**一次** shell 往返逐个做 `[ -f <cand>/meta/integrations/gateway.py ]`,命中者即仓库根;随后每次执行都把 `workdir` 与 `cd` 一起钉死在该根上。解析失败时抛出的错误会列出全部候选,并提示用 `repo` 显式指定——而不是把 `uv` 的原始报错丢给使用者。`methodology_status` 返回的 `root` 字段就是本次解析结果,可用来一眼确认没跑错目录。
 
-## 七、常驻化(下一步,本轮未交付)
+## 七、常驻化(第一步已交付:Host-only bundle)
 
-动态插件的代价是**会话级、进程内**——每次新会话都要重新 define/run(虽然 agent 可以按上面三步自主完成)。要让适配壳**随进程启动即装载、全会话可见**,DSH 的机制是 **profile bundle**:
+动态插件的代价是**会话级、进程内**——每次新会话都要重新 define/run(虽然 agent 可以按上面三步自主完成)。让适配壳**随进程启动即装载、全会话可见**的机制是 **profile bundle**,第一步已交付:
 
-```jsonc
-// package.json(示意,未交付)
-{ "name": "dsh-methodology-adapter", "type": "module", "main": "lib/index.js",
-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } } }
 ```
-```yaml
-# cordis.patch.yml(示意,未交付)
-- insert:
-    - id: methodology-adapter
-      name: 'dsh-methodology-adapter'
+meta/integrations/dsh/bundle/
+├── package.json          # name: dsh-methodology-adapter; dsh.bundle.patch; main: lib/index.js
+├── cordis.patch.yml      # - insert: - id: methodology-adapter(name 是安装后的绝对/相对模块路径)
+├── lib/index.js          # ESM 静态插件:inject ['tools','shell'],ctx.tools.register(defineTool(...)) × 5
+└── shared/tools.core.js  # 与动态半逐段一致的共享源(单一事实源)
 ```
 ```bash
 dsh plugin --profile <name> add <spec>     # 依赖里声明了 dsh.bundle 的包会自动加入 layer stack
 ```
 
-**为什么本轮不交付:** 常驻 bundle 需要 (a) 一个脱离沙箱的 Node 入口(不能复用沙箱里的 `harness.registerTool` 形态)、(b) 装进真实 profile 后真机验证,(c) 一段无法在仓库内自证的浏览器半装配。在无法端到端验证的前提下交付一份**平行的第二实现**,会立刻产生与 `dynamic/` 漂移的双份真相,违反本仓库的奥卡姆与 add-only 纪律。因此本轮先把**唯一的、可验证的**实现(动态壳 + 网关 + 技能)做扎实,把常驻化记录为下一步(见 OpenSpec change 的 tasks)。
+**已交付与验证**(change `add-resident-bundle`):
 
-若你希望现在就走常驻路线,建议的顺序是:先在 profile 里装一个**只有 Host 半、无 UI** 的最小 bundle(工具能力先落地),验证 `ctx.tools.register` 与 `ctx.shell` 在真实装配下可用;再把 `snapshot/judge/gate` 三个 RPC 与卡片 UI 作为第二个包补上。
+- 安装:`dsh plugin --profile mthd-verify add ./meta/integrations/dsh/bundle`(link 安装),`--dump-config` 出现 `# == dsh-methodology-adapter` 层;
+- 启动即装载:该 profile 起 one-shot 进程,启动日志出现 `methodology adapter (resident bundle) active: 5 tools`——不经 `cordis_define`/`cordis_run`;
+- 防漂移:bundle 与动态半共享 `tools.core.js` 的全部关键段(RUNNER/q()/两个 to*Value/schema 常量/resolveRoot/runGateway/candidateRoots),`verify-adapter.mjs` 逐段等价断言(全量 104 项)强制一致;
+- 形态差异(允许的唯一差异):动态半走沙箱 `harness.defineTool`(raw 参数根 `{type:'object',properties,required:[]}`),静态走 `ctx.tools.register(defineTool(...))`(DSL 参数根,属性级 `required: true`)。
+
+**未交付(第二步)**:浏览器半的卡片 UI。常驻形态没有 `host.call` 消费者,面板仍由动态插件承担;需要时把 RPC 与 UI 作为第二个包补上。

@@ -49,30 +49,36 @@
 
 详细排障见 `README.md` §五。
 
-## 四、方式 B —— 静态常驻启动（DSH 官方机制，本适配待交付）
+## 四、方式 B —— 静态常驻启动(Host-only 第一步已交付)
 
-DSH 官方教程 `01-first-plugin.md` 演示的就是这条：写一个插件模块、在 `cordis.yml` 里装载、loader 启动。
+DSH 官方教程 `01-first-plugin.md` / `07-into-the-harness.md` 教的就是这条。**第一步(Host-only)已交付**: `/meta/integrations/dsh/bundle/` 是一个可安装的 npm bundle,进程启动即装载 5 个 `methodology_*` 工具,无需 `cordis_define`/`cordis_run`。
 
-最小形状（来自官方教程）：
+最小形状(官方教程形态,与已交付实现一致):
 
 ```ts
-// <plugin>.ts —— 方法论的常驻版要走这个形状(待实现),此例是官方 hello
-import type { Context } from '@deepseek-ai/cordis'
+// bundle/lib/index.js —— ESM 静态插件
+import { defineTool } from '@deepseek-ai/dsh-tools'
 export const name = 'methodology-adapter'
-export function apply(ctx: Context) { /* ctx.tools.register(defineTool({...})) */ }
+export const inject = ['tools', 'shell']
+export function apply(ctx) { ctx.tools.register(defineTool({ ... })) }
 ```
 
-```yaml
-# cordis.yml 中的一行(DSH preset/cordis.patch.yml 的 row 形态)
-- id: methodology-adapter
-  name: './path/to/plugin.ts'   # 相对路径或 npm 包名
+安装(在方法论仓库根执行;一次性验证 profile 示例):
+
+```sh
+dsh plugin --profile <name> add ./meta/integrations/dsh/bundle
+dsh --profile <name> --dump-config        # 应出现 "# == dsh-methodology-adapter" 层
+dsh --profile <name> "<任务>"             # 启动日志出现 "active: 5 tools"
+dsh plugin --profile <name> remove dsh-methodology-adapter
 ```
+
+与动态版的关系:**同一份共享源**(`bundle/shared/tools.core.js` = 动态半对应段),由 `verify-adapter.mjs` 的等价断言强制一致,不会漂移。**差异只允许是包裹方式**:动态半走沙箱 `harness.defineTool`(raw 参数根),静态走 `ctx.tools.register(defineTool(...))`(DSL 参数根、属性级 `required`)。**第二步(浏览器半的卡片 UI)未交付**——常驻形态不注册 `host.call` RPC,面板仍由动态插件承担。
 
 两种分发方式：
 - **preset**：把自己的 `cordis.yml` 放 `${DSH_HOME:-$HOME/.dsh}/.agent-presets/<id>/`（不要改部署自带 preset），重启装载；
 - **bundle**：`package.json` 声明 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }`，用 `dsh plugin --profile <name> add <spec>` 加入 profile。
 
-**为什么本轮没交付 B**：见 `meta/integrations/dsh/README.md` §七与 change 的 tasks 6.1——需要一个脱离沙箱的模块入口、一份装进真实 profile 后可真机验证的浏览器半装配、并在**仓库内无法端到端自证**的前提下避免产生第二份漂移实现。先做“只有 Host 半、无 UI”的最小模块验证后再补 UI。
+**两步交付的当前状态**:第一步(Host-only bundle)已交付并真机验证——一次性 profile 安装、`--dump-config` 出层、启动日志出现 `active: 5 tools`(change `add-resident-bundle`);漂移风险由共享源 + `verify-adapter.mjs` 等价断言(104 项)钉住。第二步(浏览器半的卡片 UI)未交付:常驻形态没有 `host.call` 消费者,面板仍由动态插件承担,待需要时再议。
 
 ## 五、官方文档位置（决定启动方式前先读）
 

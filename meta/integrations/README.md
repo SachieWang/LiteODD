@@ -55,7 +55,7 @@ meta/integrations/
 | 面 | 要解决的问题 | 本层落点 | 状态 |
 |---|---|---|---|
 | **A 触发面** | agent 不知道"何时该喊脚本" | `.agents/skills/methodology-gate`、`methodology-capture-retro`(DSH 会话目录即生效) | ✅ 已交付并实测被 DSH 收录 |
-| **B 调用面** | 闸门不可程序化调用 | `dynamic/methodology.host.js` 注册 5 个模型工具;`gateway.py` 统一 JSON | ✅ 已交付 + 契约自检 |
+| **B 调用面** | 闸门不可程序化调用 | `dynamic/methodology.host.js` 注册 5 个模型工具;`bundle/` 常驻形态(同一共享源);`gateway.py` 统一 JSON | ✅ 已交付(动态 + 常驻 bundle 双形态,等价断言钉住)+ 契约自检 |
 | **C 事件面** | 靠人主动触发 | `gateway.py` 作为**唯一事件入口**(一条命令 = 一条流水线),供 git hook / CI / 文件监听直接调用 | ✅ 入口已交付;hook/CI 由使用者按需接(见下方"种子集"注意) |
 | **D 吸收面** | 人的角色是"每次触发" | 判定降级为**一次工具调用**;吸收仍走 change + 三态审批(approve/reject/hold),人只在异常时介入 | ✅ 判定侧已交付;审批接线属 Layer 2 既有能力 |
 | **E 感知面** | 每轮手动翻契约文档 | `methodology_status`(契约快照:frame/元模型/阶段/吸收目标/候选/目标/权威命令) | ✅ 已交付 |
