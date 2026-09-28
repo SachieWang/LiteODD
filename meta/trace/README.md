@@ -14,7 +14,8 @@
 T="uv run --project meta/scripts python meta/trace/tracer.py"
 $T verify targets/<project>                     # 全局链接完整性(硬门);exit 0 = 通过
 $T report targets/<project>                     # 覆盖度指标 + 孤儿概念
-$T refs   targets/<project> sp:<concept>        # 反向查询:谁引用了该概念
+$T refs   targets/<project> <concept-id>       # 反向查询:谁引用了该概念(id 须在 instances.yaml 登记)
+$T refs   targets/<project> <ADR-id>           # 反向查询:谁取代了该 ADR(supersedes 链)
 $T why    targets/<project> REQ-<n>             # 某需求的下游链
 ```
 

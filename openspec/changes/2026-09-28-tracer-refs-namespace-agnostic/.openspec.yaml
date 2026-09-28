@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-09-28
+# 代码-规格对齐修复:traceability spec 的 Reverse query 本就要求任意 concept id 可查;
+# 实现却硬编码 sp: 前缀。无规格变更,故 skip_specs。
+skip_specs: true

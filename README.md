@@ -122,7 +122,7 @@ uv run --project meta/scripts python meta/engine/engine.py <target>
 # 3. Layer 4 可追溯
 uv run --project meta/scripts python meta/trace/tracer.py verify <target>    # 链接完整性(硬门)
 uv run --project meta/scripts python meta/trace/tracer.py report <target>    # 覆盖度指标
-uv run --project meta/scripts python meta/trace/tracer.py refs   <target> sp:<concept>   # 反向查询
+uv run --project meta/scripts python meta/trace/tracer.py refs   <target> <concept-id>   # 反向查询(概念 id 须在 instances.yaml 登记;ADR id 查取代链)
 
 # 4. Layer 3 自进化
 uv run --project meta/scripts python meta/evolution/bench.py <target>        # 基准回归

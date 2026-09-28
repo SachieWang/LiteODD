@@ -211,11 +211,13 @@ def refs(target, key: str) -> dict:
     target = pathlib.Path(target)
     arts = _load(target)
     by_type: dict[str, list[str]] = {}
-    if key.startswith("sp:"):
+    if key in _instances(target):
+        # 概念:在 instances.yaml 中解析即算(与 verify/coverage 同一判据),不绑定命名空间
         for a in arts:
             if key in _concepts_of(a["body"]):
                 by_type.setdefault(a["key"], []).append(a["id"])
     else:
+        # 否则按 artifact id 查询(ADR 取代链:谁取代了它)
         for a in arts:
             if key in (a["body"].get("supersedes") or []):
                 by_type.setdefault(a["key"], []).append(a["id"])
