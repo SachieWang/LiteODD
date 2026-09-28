@@ -63,10 +63,20 @@ export const inject = ['tools', 'shell']
 export function apply(ctx) { ctx.tools.register(defineTool({ ... })) }
 ```
 
-安装(在方法论仓库根执行;一次性验证 profile 示例):
+安装(两种通道,**同一份 patch** 均正确——插件行按包名 `dsh-methodology-adapter` 引用):
 
 ```sh
+# 开发(link):装的是指向仓库内 bundle/ 的软链,移动/删除仓库即失效——只用于本仓库开发
 dsh plugin --profile <name> add ./meta/integrations/dsh/bundle
+
+# 分发(git spec):代码拷进 profile 的 pnpm store,与源目录彻底解耦,换机可迁移
+dsh plugin --profile <name> add <git-url>#<tag>
+
+# 分发(npm,发布后):同上,registry 通道
+dsh plugin --profile <name> add dsh-methodology-adapter
+```
+
+```sh
 dsh --profile <name> --dump-config        # 应出现 "# == dsh-methodology-adapter" 层
 dsh --profile <name> "<任务>"             # 启动日志出现 "active: 5 tools"
 dsh plugin --profile <name> remove dsh-methodology-adapter

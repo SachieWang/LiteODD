@@ -214,10 +214,13 @@ meta/integrations/dsh/bundle/
 dsh plugin --profile <name> add <spec>     # 依赖里声明了 dsh.bundle 的包会自动加入 layer stack
 ```
 
-**已交付与验证**(change `add-resident-bundle`):
+**已交付与验证**(change `add-resident-bundle` + `bundle-distribution-form`):
 
-- 安装:`dsh plugin --profile mthd-verify add ./meta/integrations/dsh/bundle`(link 安装),`--dump-config` 出现 `# == dsh-methodology-adapter` 层;
-- 启动即装载:该 profile 起 one-shot 进程,启动日志出现 `methodology adapter (resident bundle) active: 5 tools`——不经 `cordis_define`/`cordis_run`;
+- 安装(**通道无关**:插件行按包名 `dsh-methodology-adapter` 引用,一份 patch 通吃两种通道):
+  - 开发(link):`dsh plugin --profile <n> add ./meta/integrations/dsh/bundle` —— 软链绑定仓库目录,**移动/删除仓库即失效,仅用于本仓库开发**;
+  - 分发(git spec):`dsh plugin --profile <n> add <git-url>#<tag>` —— 代码拷进 profile 的 pnpm store,与源目录解耦,换机可迁移;
+  - 分发(npm,发布后):`dsh plugin --profile <n> add dsh-methodology-adapter`。
+- 启动即装载:该 profile 起 one-shot 进程,启动日志出现 `methodology adapter (resident bundle) active: 5 tools`——不经 `cordis_define`/`cordis_run`(link 与包名两种 patch 形态均实测);
 - 防漂移:bundle 与动态半共享 `tools.core.js` 的全部关键段(RUNNER/q()/两个 to*Value/schema 常量/resolveRoot/runGateway/candidateRoots),`verify-adapter.mjs` 逐段等价断言(全量 104 项)强制一致;
 - 形态差异(允许的唯一差异):动态半走沙箱 `harness.defineTool`(raw 参数根 `{type:'object',properties,required:[]}`),静态走 `ctx.tools.register(defineTool(...))`(DSL 参数根,属性级 `required: true`)。
 

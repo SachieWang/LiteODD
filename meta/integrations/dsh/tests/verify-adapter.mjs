@@ -424,7 +424,7 @@ const pkg = JSON.parse(readFileSync(path.join(BUNDLE_DIR, 'package.json'), 'utf8
 check('package.json 带 dsh.bundle.patch', pkg.dsh && pkg.dsh.bundle && pkg.dsh.bundle.patch === './cordis.patch.yml')
 check('package.json main 指向 lib/index.js', pkg.main === 'lib/index.js')
 const patchYml = readFileSync(path.join(BUNDLE_DIR, 'cordis.patch.yml'), 'utf8')
-check('patch 含 methodology-adapter insert 行', /id:\s*methodology-adapter/.test(patchYml) && /'\.\/lib\/index\.js'/.test(patchYml))
+check('patch 含 methodology-adapter insert 行(包名引用,通道无关)', /id:\s*methodology-adapter/.test(patchYml) && /'dsh-methodology-adapter'/.test(patchYml) && !/\.\/lib\/index\.js/.test(patchYml))
 
 // 3.2 装载静态模块:裸 specifier(@deepseek-ai/dsh-tools)需要在 bundle 目录
 //     可达 —— 测试内建一次性 node_modules 软链指向 DSH 安装,结束即清理。

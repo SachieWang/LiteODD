@@ -1,6 +1,10 @@
 # 方法论适配壳 —— 常驻 bundle patch(Host-only,第一步)
-# 安装:dsh plugin --profile <name> add <本目录> 或 plugin_manager install_bundle。
-# 相对路径(./lib/index.js)锚定在本 patch 文件旁。
+# 安装(两种通道,同一份 patch 均正确):
+#   开发(link):   dsh plugin --profile <name> add ./meta/integrations/dsh/bundle
+#   分发(git/npm):dsh plugin --profile <name> add <git-url>#<tag> 或 <包名>
+# 插件行按**包名**引用(官方 publish 形态):link 安装链进 node_modules、
+# git/npm 安装拷进 pnpm store,Node 模块解析对两者都成立——通道无关,
+# 不产生对源仓库目录位置的绑定。
 - insert:
     - id: methodology-adapter
-      name: './lib/index.js'
+      name: 'dsh-methodology-adapter'

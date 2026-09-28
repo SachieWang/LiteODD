@@ -65,7 +65,7 @@ export function apply(ctx) {
       if (typeof hit === 'string') return hit
     }
     throw new Error('methodology adapter 未能在候选目录中找到 ' + GATEWAY_REL + ';候选: '
-      + roots.join(' , ') + '。请用 repo 参数显式指定方法论仓库根。')
+      + roots.join(' , ') + '。请先安装方法论工具本体(clone 仓库或运行其 install 脚本),再以 repo 参数显式指定该安装位置。')
   }
 
   async function runGateway(subArgs, args, exec) {
