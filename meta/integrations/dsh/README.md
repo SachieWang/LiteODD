@@ -56,7 +56,7 @@ DSH 的插件模型(本轮实测所依据的事实):
 cordis_inspect_list
   # 返回当前 Host/Client 已注册的 Provider 与只读方法,确认有 host 的 Service / Builtin / Tool 等
 cordis_inspect_query  { platform: "host", provider: "Service", method: "listService", input: { service: "shell" } }
-  # 确认 ctx.shell 这个服务确实挂载、且 resolve/run 签名如本适配所依赖(SHELL_SETTINGS_NAMESPACE='shell')
+  # 确认 ctx.shell 这个服务确实挂载、且 resolve/execute 签名如本适配所依赖(SHELL_SETTINGS_NAMESPACE='shell')
 ```
 
 本适配 host 半 `inject: ['shell']`;若 Host 装配没有 `shell` 提供者(由 `bash-sandbox`/`bash-local` 提供),插件会被 Cordis **挂起**到该服务出现——所以先查这一步最省事。
@@ -152,6 +152,7 @@ Cordis 的三层身份:`pluginId`(稳定实例)/ `packageId`(不可变代码版�
 
 | 现象 | 先查 |
 |---|---|
+| 工具抛 `shell.X is not a function` 类 TypeError | 宿主 shell 服务契约与适配壳不匹配。适配壳(fix-shell-execute-api 起)只走当前 `ShellExecutor` 契约:`resolve()` → `execute()` → 句柄 `result()`;DSH `d6bebc5783`(2026-08-26)起 `run()` 已收敛消失。先跑 `verify-adapter.mjs` 确认宿主契约,再对照 DSH 源码 `packages/shell/shell/src/index.ts` |
 | `host.call` / 工具报 `service "…" is not declared` | 本包 `inject: ['shell']` 是否声明;Host 装配里是否有 `shell` 提供者(`bash-sandbox` / `bash-local` 提供 `ctx.shell`) |
 | `define` 报 schema 不支持 | 只用 DSH 受支持子集:`parameters` 用 object 根 + **根 required 数组**(raw 模式**属性级 `required` 会被拒**);`output.schema` 的 object 节点必须显式 `additionalProperties`,必填写成**属性级** `required: true` |
 | Client 解析失败 | 两半都是纯 JS 函数体:无 JSX / TS / `import`;建元素用 `React.createElement` |
@@ -164,7 +165,7 @@ Cordis 的三层身份:`pluginId`(稳定实例)/ `packageId`(不可变代码版�
 ## 六、契约自检(不需要启动 DSH)
 
 ```bash
-node meta/integrations/dsh/tests/verify-adapter.mjs          # 104 项断言(快)
+node meta/integrations/dsh/tests/verify-adapter.mjs          # 106 项断言(快;含旧 shell API 反向断言)
 node meta/integrations/dsh/tests/verify-adapter.mjs --full    # 追加真实 bench/gate 信封
 ```
 
@@ -182,7 +183,7 @@ node meta/integrations/dsh/tests/verify-adapter.mjs --full    # 追加真实 ben
 
 ## 五之二、仓库根解析(为什么适配壳不信任工作目录)
 
-**实测事实**:动态包的 `shell.run` 若不显式给 `workdir`,拿到的是 **shell 实现自己的默认工作目录**,它**不保证**等于会话工作区。旧版适配壳把"当前目录就是仓库根"当前提,在 DSH 里直接失败:
+**实测事实**:动态包的 shell 调用(现为 `resolve()` + `execute()`;历史版本是 `shell.run`)若不显式给 `workdir`,拿到的是 **shell 实现自己的默认工作目录**,它**不保证**等于会话工作区。旧版适配壳把"当前目录就是仓库根"当前提,在 DSH 里直接失败:
 
 ```
 methodology gateway 输出不是 JSON(exit 2)
@@ -221,7 +222,7 @@ dsh plugin --profile <name> add <spec>     # 依赖里声明了 dsh.bundle 的�
   - 分发(git spec):`dsh plugin --profile <n> add <git-url>#<tag>` —— 代码拷进 profile 的 pnpm store,与源目录解耦,换机可迁移;
   - 分发(npm,发布后):`dsh plugin --profile <n> add dsh-methodology-adapter`。
 - 启动即装载:该 profile 起 one-shot 进程,启动日志出现 `methodology adapter (resident bundle) active: 5 tools`——不经 `cordis_define`/`cordis_run`(link 与包名两种 patch 形态均实测);
-- 防漂移:bundle 与动态半共享 `tools.core.js` 的全部关键段(RUNNER/q()/两个 to*Value/schema 常量/resolveRoot/runGateway/candidateRoots),`verify-adapter.mjs` 逐段等价断言(全量 104 项)强制一致;
+- 防漂移:bundle 与动态半共享 `tools.core.js` 的全部关键段(RUNNER/q()/两个 to*Value/schema 常量/resolveRoot/runGateway/candidateRoots),`verify-adapter.mjs` 逐段等价断言(全量 106 项,含旧版 shell API 反向断言)强制一致;
 - 形态差异(允许的唯一差异):动态半走沙箱 `harness.defineTool`(raw 参数根 `{type:'object',properties,required:[]}`),静态走 `ctx.tools.register(defineTool(...))`(DSL 参数根,属性级 `required: true`)。
 
 **未交付(第二步)**:浏览器半的卡片 UI。常驻形态没有 `host.call` 消费者,面板仍由动态插件承担;需要时把 RPC 与 UI 作为第二个包补上。

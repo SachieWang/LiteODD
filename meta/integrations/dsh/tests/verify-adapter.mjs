@@ -111,22 +111,53 @@ function shellResult(spec, text, exitCode) {
 }
 
 // 假 shell:只记录命令并按需回放真实 gateway 信封,不真的起进程。
+// 建模当前 ShellExecutor 契约(resolve + execute + 句柄 result 投影,DSH
+// d6bebc5783 起 run() 已收敛消失):假 shell **刻意不提供 run** —— 若适配壳
+// 回退调用旧 API,必须当场 TypeError,而不是被替身悄悄放行(互掩失效)。
 const fakeShell = {
   resolve(request) {
-    return { ...request, workdir: request.workdir || shellDefaultWorkdir, timeoutMs: request.timeoutMs || 1000 }
+    // resolve 的职责:补全实现的默认值,返回完整 ShellExecSpec 字段集。
+    return {
+      command: request.command,
+      workdir: request.workdir || shellDefaultWorkdir,
+      timeoutMs: request.timeoutMs || 1000,
+      onExpiry: 'kill',
+      stdoutMaxBytes: request.stdoutMaxBytes === undefined ? 1048576 : request.stdoutMaxBytes,
+      signal: request.signal === undefined ? undefined : request.signal,
+      stdin: undefined,
+      sandboxPolicy: undefined,
+    }
   },
-  async run(spec) {
+  async execute(spec) {
     shellCalls.push(spec)
     // 仓库根探测命令:按命令里**实际写出的候选列表**回答,只有候选等于 REPO 才
     // 视为"该目录下有 gateway.py"。假 shell 因此不预设 host 的候选顺序。
+    let projection
     if (spec.command.includes('REPO_INDEX')) {
       const candidates = [...spec.command.matchAll(/'([^']*)'/g)].map(m => m[1])
       const index = candidates.indexOf(REPO)
-      return index >= 0
+      projection = index >= 0
         ? shellResult(spec, 'REPO_INDEX=' + index + '\n')
         : shellResult(spec, 'REPO_NONE\n', 3)
+    } else {
+      projection = shellResult(spec, JSON.stringify(cannedEnvelope))
     }
-    return shellResult(spec, JSON.stringify(cannedEnvelope))
+    // 真实 ShellExecution = ShellProcess(句柄)+ result()(前台投影)。
+    const done = Promise.resolve()
+    const handle = {
+      status: 'completed',
+      exitCode: projection.exitCode,
+      signal: null,
+      done,
+      readOutput() { return { delta: '', lossy: false } },
+      observed: {
+        stdout: { read() { return { text: '', truncated: false } } },
+        stderr: { read() { return { text: '', truncated: false } } },
+      },
+      kill() { return false },
+      result() { return Promise.resolve(projection) },
+    }
+    return handle
   },
 }
 const mockHarness = {
@@ -356,6 +387,57 @@ try {
   check('显式 repo 跳过探测(0 次探测往返)', false, error.message)
 }
 
+// ---- 反向断言:假 shell 不提供 run(),适配壳不得回退旧 API --------------------
+// 2026-09-28 的真实故障:DSH d6bebc5783 起 ctx.shell 收敛为 resolve+execute,
+// 适配壳仍调 shell.run → 5 个工具全炸,而旧版假 shell 建模的也是 run(),104 项
+// 断言全过——替身与实现一起漂移,互相掩护。此断言把该失效模式钉死:两半任一
+// 回退调用旧便捷入口,在新假 shell 下必须以 TypeError 暴露,且命令未被记录。
+console.log('\n== 反向断言:旧版 run() API 必炸 ==')
+{
+  // 动态半重建:复用 evaluateHostHalf 的装配方式,但 harness 捕获到独立数组,
+  // shell 注入"只有 run 的旧版宿主"。
+  const legacyRegistered = []
+  const legacyHandlers = {}
+  const legacyHarness = {
+    defineTool: (def) => def,
+    registerTool: (_ctx, tool) => { legacyRegistered.push(tool); return () => {} },
+    handle: (method, fn) => { legacyHandlers[method] = fn; return () => {} },
+  }
+  const legacyShell = {
+    resolve(request) { return { ...request, workdir: REPO, timeoutMs: 1000 } },
+    async run(_spec) { throw new Error('legacy run() must not be called') },
+  }
+  const sandbox = {
+    harness: legacyHarness,
+    console: sandboxConsole,
+    btoa: (s) => Buffer.from(s, 'utf-8').toString('base64'),
+    atob: (s) => Buffer.from(s, 'base64').toString('utf-8'),
+    TextEncoder, TextDecoder,
+  }
+  const context = vm.createContext(sandbox)
+  // 动态半 apply(ctx) 经 ctx.get('shell') 拿服务:装配后手动以旧版宿主 apply。
+  const legacyPlugin = await vm.runInContext(HOST_WRAPPED, context, { filename: 'methodology.host.js' })
+  legacyPlugin.apply({ get: (name) => (name === 'shell' ? legacyShell : undefined) })
+  shellCalls.length = 0
+  const probe = legacyRegistered.find(t => t.name === 'methodology_status')
+  let threwLegacyError = false
+  let message = ''
+  try {
+    await probe.execute({ repo: REPO }, { signal: undefined })
+  } catch (error) {
+    // 适配壳调用 shell.execute(不存在)→ TypeError "not a function";若适配壳
+    // 回退调 shell.run(存在,但抛 legacy 守卫)→ 该守卫错误即失效信号。
+    // 注:错误跨 vm realm 抛出,instanceof 对照本模块的 TypeError 不成立,
+    // 以 error.name 判别(TypError 的 name 恒为 'TypeError')。
+    threwLegacyError = error.name === 'TypeError' || /legacy run\(\) must not be called/.test(String(error.message))
+    message = error.message
+  }
+  check('动态半:旧版 run-only shell 上 execute 路径必炸(命令未记录)', threwLegacyError && shellCalls.length === 0,
+    threwLegacyError ? '' : ('unexpectedly succeeded or wrong error: ' + message))
+}
+
+// 反向断言的 bundle 半在 §3(bundlePlugin 装载之后)执行:见 resident bundle 段末尾。
+
 // ===========================================================================
 // 2. CLIENT 半
 // ===========================================================================
@@ -480,6 +562,37 @@ try {
   check('bundle 网关调用钉 workdir', !!gw && gw.workdir === REPO)
 } catch (error) {
   check('bundle methodology_status execute', false, error.message)
+}
+
+// 反向断言(bundle 半):以"只有 run 的旧版 shell"重建 bundle,execute 路径
+// 必须以 TypeError 暴露(与 §1 的动态半反向断言配对,两半任一回退旧 API 都炸)。
+{
+  console.log('\n== 反向断言(bundle 半):旧版 run() API 必炸 ==')
+  const legacyShell = {
+    resolve(request) { return { ...request, workdir: REPO, timeoutMs: 1000 } },
+    async run(_spec) { throw new Error('legacy run() must not be called') },
+  }
+  const bundleLegacyRegistered = []
+  const bundleLegacyCtx = {
+    shell: legacyShell,
+    get: (name) => (name === 'shell' ? legacyShell : (name === 'workspaceRegistry' ? mockWorkspaceRegistry : undefined)),
+    tools: { register: (t) => { bundleLegacyRegistered.push(t); return () => {} } },
+  }
+  bundlePlugin.apply(bundleLegacyCtx)
+  shellCalls.length = 0
+  const bundleProbe = bundleLegacyRegistered.find(t => t.name === 'methodology_status')
+  let threwLegacyError = false
+  let message = ''
+  try {
+    await bundleProbe.execute({ repo: REPO }, { signal: undefined })
+  } catch (error) {
+    // 与动态半同构:TypeError(execute 缺失;跨 realm 用 error.name 判别)或
+    // legacy run() 守卫错误都算暴露。
+    threwLegacyError = error.name === 'TypeError' || /legacy run\(\) must not be called/.test(String(error.message))
+    message = error.message
+  }
+  check('bundle 半:旧版 run-only shell 上 execute 路径必炸(命令未记录)', threwLegacyError && shellCalls.length === 0,
+    threwLegacyError ? '' : ('unexpectedly succeeded or wrong error: ' + message))
 }
 
 // 3.4 等价断言:shared/tools.core.js 的关键段与动态半逐段一致(防漂移)

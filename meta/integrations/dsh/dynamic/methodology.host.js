@@ -26,7 +26,8 @@
 //
 // --- 仓库根解析(实测教训,勿回退) ------------------------------------------
 // 旧版让 shell 自己决定工作目录,只在"环境恰好是仓库根"时成立。实测在 DSH 里
-// 不成立:动态包的 shell.run 若不显式给 workdir,拿到的是 shell 实现的**默认工作
+// 不成立:动态包的 shell 执行(历史版本为 shell.run,现为 execute();教训不变)
+// 若不显式给 workdir,拿到的是 shell 实现的**默认工作
 // 目录**,它不保证等于会话工作区;于是 `uv` 报
 //   error: Project directory `meta/scripts` does not exist
 // 而 gateway 根本没跑起来。现在改为**显式解析仓库根**,不再依赖环境:
@@ -276,7 +277,8 @@ return {
         + 'i=$((i+1)); done; echo REPO_NONE; exit 3'
       const request = { command: script, timeoutMs: 30000 }
       if (exec && exec.signal) request.signal = exec.signal
-      const result = await shell.run(shell.resolve(request))
+      const handle = await shell.execute(shell.resolve(request))
+      const result = await handle.result()
       const stdout = result.stdout && result.stdout.text ? result.stdout.text : ''
       const matched = stdout.match(/REPO_INDEX=(\d+)/)
       if (matched) {
@@ -287,7 +289,7 @@ return {
         + roots.join(' , ') + '。请先安装方法论工具本体(clone 仓库或运行其 install 脚本),再以 repo 参数显式指定该安装位置。')
     }
 
-    // 同一次调用内的 shell 往返:解析仓库根 → 构造命令 → resolve 补默认值 → run。
+    // 同一次调用内的 shell 往返:解析仓库根 → 构造命令 → resolve 补默认值 → execute。
     // 只把 workdir 写进 request(不 resolve 之后再改 spec):resolved spec 由实现
     // 拥有,不保证可变,靠 request 交给实现才是契约内的做法。
     async function runGateway(subArgs, args, exec) {
@@ -295,7 +297,8 @@ return {
       const command = 'cd ' + q(root) + ' && ' + RUNNER + ' ' + subArgs.join(' ')
       const request = { command: command, workdir: root, timeoutMs: 600000, stdoutMaxBytes: 4194304 }
       if (exec && exec.signal) request.signal = exec.signal
-      const result = await shell.run(shell.resolve(request))
+      const handle = await shell.execute(shell.resolve(request))
+      const result = await handle.result()
       const stdout = result.stdout && result.stdout.text ? result.stdout.text : ''
       const stderr = result.stderr && result.stderr.text ? result.stderr.text : ''
       let env = null

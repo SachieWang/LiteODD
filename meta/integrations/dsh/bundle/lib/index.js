@@ -57,7 +57,8 @@ export function apply(ctx) {
       + 'i=$((i+1)); done; echo REPO_NONE; exit 3'
     const request = { command: script, timeoutMs: 30000 }
     if (exec && exec.signal) request.signal = exec.signal
-    const result = await shell.run(shell.resolve(request))
+    const handle = await shell.execute(shell.resolve(request))
+    const result = await handle.result()
     const stdout = result.stdout && result.stdout.text ? result.stdout.text : ''
     const matched = stdout.match(/REPO_INDEX=(\d+)/)
     if (matched) {
@@ -73,7 +74,8 @@ export function apply(ctx) {
     const command = 'cd ' + q(root) + ' && ' + RUNNER + ' ' + subArgs.join(' ')
     const request = { command: command, workdir: root, timeoutMs: 600000, stdoutMaxBytes: 4194304 }
     if (exec && exec.signal) request.signal = exec.signal
-    const result = await shell.run(shell.resolve(request))
+    const handle = await shell.execute(shell.resolve(request))
+    const result = await handle.result()
     const stdout = result.stdout && result.stdout.text ? result.stdout.text : ''
     const stderr = result.stderr && result.stderr.text ? result.stderr.text : ''
     let env = null
