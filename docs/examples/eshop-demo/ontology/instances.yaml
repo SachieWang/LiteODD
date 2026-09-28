@@ -1,0 +1,31 @@
+# =============================================================================
+# eShop-demo 教学样例 —— ontology/instances.yaml(虚构,配套 docs/tutorial.md)
+# -----------------------------------------------------------------------------
+# 每个实例的 instantiateOf 必须指向 /meta/ontology/frame.yaml 中的通用类型
+# (当前 9 类):Assembly | Component | Seam | ExecutionUnit | PersistentState
+#              | EventStream | ContextBoundary | Rule | Actor
+# =============================================================================
+
+schemaVersion: 1.0
+frame: /meta/ontology/frame.yaml
+
+instances:
+  - id: es:order
+    instantiateOf: Component
+    note: 订单——系统的核心业务对象,聚合订单行与状态
+
+  - id: es:cart
+    instantiateOf: ExecutionUnit
+    note: 购物车到下单的结算执行单元,边界为"开始结算→订单落库"
+
+  - id: es:payment-gateway
+    instantiateOf: Seam
+    note: 支付通道缝——可替换的支付能力边界(契约+多提供商+消费者)
+
+  - id: es:order-event
+    instantiateOf: EventStream
+    note: 订单事件流——订单状态变化的产生/观察/排序
+
+  - id: es:order-log
+    instantiateOf: PersistentState
+    note: 订单流水——仅追加、可重建的持久状态(审计与对账依据)

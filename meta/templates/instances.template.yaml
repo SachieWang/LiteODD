@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 # 目标项目本体实例。每个 id 唯一;instantiateOf 必须指向
 # /meta/ontology/frame.yaml 中的通用类型:
-#   Assembly | Component | Seam | ExecutionUnit | PersistentState | EventStream | ContextBoundary
+#   Assembly | Component | Seam | ExecutionUnit | PersistentState | EventStream | ContextBoundary | Rule | Actor
 # 本模板为通用模板,不含任何具体目标内容。
 # =============================================================================
 

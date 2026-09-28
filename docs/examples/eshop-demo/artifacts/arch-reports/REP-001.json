@@ -1,0 +1,24 @@
+{
+  "report": {
+    "id": "REP-001",
+    "targetRef": "es:payment-gateway",
+    "qualityAttributes": ["可替换性", "契约稳定性", "可追溯性"],
+    "views": ["module", "runtime"],
+    "assessments": [
+      {
+        "seam": "es:payment-gateway",
+        "verdict": "pass",
+        "gaps": [
+          "支付通道的契约(支付请求/回调/对账)需要独立成文,不能散落在各适配器实现里;",
+          "通道切换作废旧请求的语义依赖各通道的关闭接口,须在契约层统一规定。"
+        ]
+      }
+    ],
+    "recommendations": [
+      "在 components.yaml 中为每个支付适配器登记 ref,保持薄索引可追溯;",
+      "新接入支付通道时只新增 provider 实现,禁止修改订单侧消费契约(见 ADR-001)。"
+    ],
+    "conceptRef": ["es:payment-gateway", "es:order", "es:cart"],
+    "meta": { "schemaVersion": "1.0" }
+  }
+}

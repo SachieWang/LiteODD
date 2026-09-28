@@ -1,0 +1,17 @@
+{
+  "requirement": {
+    "id": "REQ-001",
+    "title": "结算时支持切换支付通道",
+    "source": "eshop-vision",
+    "conceptRef": ["es:payment-gateway", "es:order"],
+    "type": "functional",
+    "acceptanceCriteria": [
+      "结算过程中可在已接入的支付通道之间切换,无需重启结算流程",
+      "切换支付通道不改变订单本体契约(订单状态机与订单号不受影响)",
+      "被放弃的通道 initiated 未成单的支付请求应可安全作废,不产生重复扣款"
+    ],
+    "priority": "P1",
+    "status": "accepted",
+    "meta": { "schemaVersion": "1.0" }
+  }
+}

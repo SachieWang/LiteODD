@@ -2,7 +2,7 @@
 
 目标:读完后,你能**为一个新项目建立对象层、产出合规产物、通过受控流水线跑通、并做全局可追溯校验**,完整实现「可复用 / 可自进化 / 可把控 / 可追溯」四项。全程用**脱敏虚构案例 eShop-demo(电商订单服务)**讲述——一套含[订单、购物车、支付通道、订单事件、订单流水]的系统,字段纯属虚构,便于你在自己的项目上照做。
 
-> 仓库的实践样例存于被 git 忽略的 `targets/`,不入版本库;本教程用模拟案例讲解,不依赖任何真实代码库。
+> 仓库的实践样例存于被 git 忽略的 `targets/`,不入版本库;本教程用模拟案例讲解,不依赖任何真实代码库。**案例的完整可抄文件**(3 份 ontology YAML + 4 份产物 JSON,可实跑全链校验)在 [docs/examples/eshop-demo/](examples/eshop-demo/README.md)。
 
 ## 前置清单
 
@@ -40,7 +40,7 @@ targets/eshop-demo/
 ## Step 2 —— 写本体实例与来源(脱敏示例)
 
 ### 2.1 instances.yaml
-列出项目**脊柱实例**,每项带 `instantiateOf`,指向元层 7 类之一:
+列出项目**脊柱实例**,每项带 `instantiateOf`,指向元层 frame 的 9 个通用类型之一:
 
 | 实例 id | instantiateOf | 语义 |
 |---|---|---|
@@ -50,7 +50,9 @@ targets/eshop-demo/
 | `es:order-event` | `EventStream` | 订单事件流 |
 | `es:order-log` | `PersistentState` | 订单流水(可重建) |
 
-**规则**:实例 id 唯一可解析、`instantiateOf` 必须是 frame 中的有效类型(Assembly / Component / Seam / ExecutionUnit / PersistentState / EventStream / ContextBoundary)。
+**规则**:实例 id 唯一可解析、`instantiateOf` 必须是 frame 中的有效类型(Assembly / Component / Seam / ExecutionUnit / PersistentState / EventStream / ContextBoundary / Rule / Actor)。
+
+> 本节的完整可抄文件在 [docs/examples/eshop-demo/](examples/eshop-demo/README.md)(3 份 ontology YAML + 4 份产物 JSON,入版本库、可实跑全链校验)。
 
 ### 2.2 components.yaml
 薄索引,把各模块映到实例;**每项 `ref` 必须解析到某个实例**(否则 `realm_structure` 拦下):
@@ -83,19 +85,19 @@ sources:
 ### 3.1 需求理解(requirement-understanding)
 输入:原始需求/访谈/愿景。产出 `artifacts/requirements/REQ-*.json`,每条符合 `requirement.schema.json`,带 `source`、`conceptRef`、`acceptanceCriteria`。
 
-> 示例愿景:「结算时支持切换支付通道,不影响订单流程。」 → 产出 `REQ-001.json`,`source: "eshop-vision"`(已登记),`conceptRef: ["es:payment-gateway", "es:order"]`,验收:换通道不改订单契约。
+> 示例愿景:「结算时支持切换支付通道,不影响订单流程。」 → 产出 `REQ-001.json`,`source: "eshop-vision"`(已登记),`conceptRef: ["es:payment-gateway", "es:order"]`,验收:换通道不改订单契约。**完整 JSON 见 [examples/eshop-demo/artifacts/requirements/REQ-001.json](examples/eshop-demo/artifacts/requirements/REQ-001.json)。**
 
 > `source` 若写成自由文本(如"某某访谈#1")且无处对应,会被 `provenance_resolvable` 拦下——**伪溯源过不了门**。
 
 ### 3.2 架构评估(architecture-assessment)
 输入:需求集 + 现状架构。产出 `arch-reports/REP-*.json`(`targetRef` 指向被评估实例)+ `adr/ADR-*.json`(`status` + `supersedes` 决策链)。
 
-> 示例:`REP-001` 评估支付通道 `es:payment-gateway`;`ADR-001` 记录「用可替换支付通道,不侵入订单流程」的决策。
+> 示例:`REP-001` 评估支付通道 `es:payment-gateway`;`ADR-001` 记录「用可替换支付通道,不侵入订单流程」的决策。**完整 JSON 见 [examples/eshop-demo/artifacts/arch-reports/REP-001.json](examples/eshop-demo/artifacts/arch-reports/REP-001.json) 与 [ADR-001.json](examples/eshop-demo/artifacts/adr/ADR-001.json)。**
 
 ### 3.3 领域建模(domain-modeling)
 输入:需求 + 领域术语。产出 `domain-models/DM-*.json`,实体各带 `conceptRef`,`boundedContexts` + `invariants` + `relationships`。
 
-> 示例:`DM-001` 含实体 Order/Checkout/PaymentGateway(各带 `es:*` conceptRef),限界上下文 `payment`,不变量(如「通道切换不改订单状态」)。
+> 示例:`DM-001` 含实体 Order/Checkout/PaymentGateway(各带 `es:*` conceptRef),限界上下文 `payment`,不变量(如「通道切换不改订单状态」)。**完整 JSON 见 [examples/eshop-demo/artifacts/domain-models/DM-001.json](examples/eshop-demo/artifacts/domain-models/DM-001.json)。**
 
 ## Step 4 —— 过质量门与受控流水线
 

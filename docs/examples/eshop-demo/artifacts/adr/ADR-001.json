@@ -1,0 +1,17 @@
+{
+  "adr": {
+    "id": "ADR-001",
+    "date": "2026-01-15",
+    "status": "accepted",
+    "context": "eShop 结算需要支持切换支付通道,而订单流程不希望被任何具体通道的细节侵入;未来还会持续接入新通道。",
+    "decision": "采用可替换支付通道(Port-Adapter / Seam)模式:订单侧只依赖统一的支付契约(es:payment-gateway),每个具体通道是一个可替换的 provider;切换通道 = 换 provider,不改订单侧消费者。",
+    "rationale": "通道是典型的易变依赖:接入/更换/下线频繁。将其隔离在缝后,既满足 REQ-001 的切换需求,又保证订单契约稳定;新增通道的成本被限制在适配器内。",
+    "alternatives": [
+      "在订单服务内 if/else 直连各通道(侵入订单流程,换通道必改订单代码)",
+      "引入独立支付微服务再由订单调用(当前规模过重,分布式一致性成本高)"
+    ],
+    "conceptRef": ["es:payment-gateway", "es:order"],
+    "supersedes": [],
+    "meta": { "schemaVersion": "1.0" }
+  }
+}

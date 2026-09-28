@@ -145,6 +145,7 @@ uv run --project meta/scripts python meta/integrations/gateway.py gate --target 
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | 总体架构、五层蓝图、双层布局、确定性边界、add-only 演进 |
 | [docs/tutorial.md](docs/tutorial.md) | 从零上手:新项目建模到受控流水线的完整演练(以脱敏 eShop-demo 为例) |
+| [docs/examples/eshop-demo/](docs/examples/eshop-demo/README.md) | 教程配套**可抄可跑样例**:3 份 ontology YAML + 4 份产物 JSON,入版本库、全链校验通过 |
 | [docs/manual.md](docs/manual.md) | 参考手册:元模型 schema、frame、三技能契约、引擎契约、可追溯与自进化、CLI、演进规范 |
 | [meta/README.md](meta/README.md) | 元层总览与放置规则 |
 | [meta/integrations/README.md](meta/integrations/README.md) / [DSH 适配](meta/integrations/dsh/README.md) | 集成适配层:单一网关 + 信封契约 + DSH Cordis 插件接线、装载、排障 |

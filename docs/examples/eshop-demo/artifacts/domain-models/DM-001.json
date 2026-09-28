@@ -1,0 +1,47 @@
+{
+  "domainModel": {
+    "id": "DM-001",
+    "entities": [
+      {
+        "name": "Order",
+        "conceptRef": "es:order",
+        "attributes": ["orderId", "status", "items"]
+      },
+      {
+        "name": "Checkout",
+        "conceptRef": "es:cart",
+        "attributes": ["cartId", "boundaryStart", "boundaryEnd"]
+      },
+      {
+        "name": "PaymentGateway",
+        "conceptRef": "es:payment-gateway",
+        "attributes": ["contract", "providers"]
+      },
+      {
+        "name": "OrderEvent",
+        "conceptRef": "es:order-event",
+        "attributes": ["eventType", "occurredAt"]
+      },
+      {
+        "name": "OrderLog",
+        "conceptRef": "es:order-log",
+        "attributes": ["appendOnly", "entries"]
+      }
+    ],
+    "boundedContexts": ["checkout", "payment"],
+    "relationships": [
+      { "from": "Checkout", "to": "Order", "type": "triggers" },
+      { "from": "Checkout", "to": "PaymentGateway", "type": "dependsOn" },
+      { "from": "PaymentGateway", "to": "OrderLog", "type": "writes" },
+      { "from": "Order", "to": "OrderEvent", "type": "triggers" },
+      { "from": "OrderEvent", "to": "OrderLog", "type": "writes" }
+    ],
+    "invariants": [
+      "通道切换不改订单状态:支付通道替换仅发生在 checkout 边界内,订单状态机不感知具体通道",
+      "OrderLog 仅追加:任何订单状态变化先落流水再改状态,流水可独立重放出当前状态",
+      "每笔订单任一时刻至多一个进行中的支付请求,作废必须留痕于 OrderLog"
+    ],
+    "conceptRef": ["es:order", "es:cart", "es:payment-gateway", "es:order-event", "es:order-log"],
+    "meta": { "schemaVersion": "1.0" }
+  }
+}

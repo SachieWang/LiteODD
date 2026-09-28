@@ -1,0 +1,24 @@
+# =============================================================================
+# eShop-demo 教学样例 —— ontology/components.yaml(虚构)
+# -----------------------------------------------------------------------------
+# 组件薄索引:每项 ref 必须解析到 instances.yaml 中的某个实例 id。
+# path 为可选(非软件领域可省略),此处演示软件领域填代码路径。
+# =============================================================================
+
+schemaVersion: 1.0
+
+components:
+  - name: order-service
+    path: src/order
+    ref: es:order
+    note: 订单服务模块
+
+  - name: checkout-flow
+    path: src/checkout
+    ref: es:cart
+    note: 结算流程模块(购物车→下单执行单元)
+
+  - name: payment-adapter
+    path: src/payment
+    ref: es:payment-gateway
+    note: 支付适配层(通道缝的具体接线)
