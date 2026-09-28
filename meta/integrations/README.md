@@ -124,7 +124,23 @@ node meta/integrations/dsh/tests/verify-adapter.mjs --full    # 追加真实 ben
 - **不让壳参与裁决**:任何"壳自己算一遍条件"的实现都是对本层的破坏。
 - **不做跨 harness 提炼**:不同 harness 的适配各自独立(本层只共享 `gateway.py` 与信封契约),避免"抽象出来的适配框架"变成新的维护负担。
 
-## 九、事件面接线前必须先解决的一件事(种子集)
+## 九、双通道分发(集成入口与本体落地,刻意分离)
+
+两个分发单元、两种消费者,接口由 `verdict.schema.json`(v1.0)钉住,互不依赖、可各自演进:
+
+| | DSH 集成 bundle | 方法论工具本体 |
+|---|---|---|
+| 角色 | deepseek-harness 与方法论的**接入入口**(项目无关) | 终端用户机器上的**本体落地** |
+| 单元 | `meta/integrations/dsh/bundle/`(包名 `dsh-methodology-adapter`) | 仓库本体 + `meta/scripts` 依赖锁 |
+| 安装 | `dsh plugin --profile <n> add <git-url>#<tag>`(npm 发布后同包名) | `install.sh` / `install.ps1`(curl-pipe-sh 或 clone 后本地跑) |
+| 版本锚 | 包版本 / git tag | git tag |
+| "装好"的定义 | 5 个工具随 DSH 进程启动注册 | `uv sync` 完成 + `gateway.py snapshot` 出合法信封 |
+
+- **同仓库、单源**:bundle 与动态壳共享 `tools.core.js` 并由等价断言钉住,不产生第二份实现;拆仓是被明确否决的选项(双份真相)。
+- **bundle 项目无关**:`resolveRoot` 自动解析(工作区/注册表),失败时报错指向"先装本体、以 `repo:` 指向该安装"——一个 bundle 服务任意一次本体安装。
+- **本体 harness 无关**:`git clone + uv run` 独立可用(三红线之一);不装 DSH 完全不影响五层工具链。
+
+## 十、事件面接线前必须先解决的一件事(种子集)
 
 `bench.py` 的回归需要**目标(种子集)**,而本仓库的实践产物目录 `targets/` 被 `.gitignore` 刻意忽略(实践产物不入版本库)。因此:
 

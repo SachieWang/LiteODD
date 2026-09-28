@@ -91,6 +91,20 @@
 
 ## 快速上手
 
+**一键安装**(推荐;装到独立目录并完成依赖与冒烟校验,幂等可重复执行=更新):
+
+```bash
+# POSIX
+curl -fsSL <raw-url>/install.sh | sh -s -- --repo <git-url> [--version <tag>] [--dest <dir>]
+# Windows(PowerShell;cmd 经 powershell -File 走同一脚本)
+irm <raw-url>/install.ps1 -OutFile install.ps1; powershell -File install.ps1 -Repo <git-url>
+# 私有仓库:raw 需 token,直接 git clone 后在仓库根跑脚本并 --dest 指向该 clone(一等通道)
+```
+
+默认落点 `~/.local/share/ontology-methodology`。**注意**:DSH 适配壳的 RUNNER 为 POSIX 片段——Windows 上本体可用,DSH 内 5 个工具暂不可用(待独立 change 修)。
+
+**手动 / 离线**(高级路径,安装器内部即此逻辑):
+
 ```bash
 # 0. 环境(uv 管理,依赖见 meta/scripts/pyproject.toml + uv.lock)
 #    若 ~/.cache 只读(如沙箱),另设:
