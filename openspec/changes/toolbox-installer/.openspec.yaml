@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-09-28
+# 安装器是外挂交付物:不改五层契约、不改 spec 级行为,只新增落地通道与文档。
+skip_specs: true
