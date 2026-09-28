@@ -95,7 +95,7 @@ export const STATUS_SCHEMA = {
 }
 
 // --- 参数 schema(DSH 统一 DSL;raw object 根,必填只由根 required 数组声明)---
-export const P_REPO = { type: 'string', description: '方法论仓库根目录(绝对路径)。省略则由适配壳自动解析(默认工作目录 + 已注册工作区)。' }
+export const P_REPO = { type: 'string', description: '方法论仓库根目录(绝对路径)。省略则由适配壳自动解析:默认工作目录 + 已注册工作区探测,未命中再读 ~/.config/ontology-methodology/repo.conf(install 脚本自动登记的安装位置,首行优先)。' }
 export const P_TARGET = { type: 'string', description: '目标项目目录,相对仓库根,例如 targets/dsh。' }
 export const P_CANDIDATE = { type: 'string', description: '复盘候选 YAML 路径,相对仓库根,例如 meta/evolution/retro/accept-example.yaml。' }
 

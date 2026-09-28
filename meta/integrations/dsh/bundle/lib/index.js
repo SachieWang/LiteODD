@@ -46,27 +46,36 @@ export function apply(ctx) {
   async function resolveRoot(args, exec) {
     const explicit = args && typeof args.repo === 'string' ? args.repo : ''
     if (explicit.length > 0) return explicit
+    // 解析链(R1 兜底):显式 repo → 探测候选(默认 workdir + workspaceRegistry)
+    // → repo.conf 登记行(install 脚本自动登记,首行优先)。conf 读取并入同一次
+    // shell 往返:失效行(目录不存在/无 gateway.py)在循环中自然跳过,坏 conf
+    // 不产生新故障;命中回 REPO_HIT=<路径>,探测候选与 conf 行同一协议。
     const roots = candidateRoots()
-    if (roots.length === 0) {
-      throw new Error('methodology adapter 无法解析仓库根:未提供 repo,也没有可探测的候选目录。请显式传 repo(方法论仓库根的绝对路径)。')
-    }
     const quoted = []
     for (let i = 0; i < roots.length; i++) quoted.push(q(roots[i]))
-    const script = 'i=0; for d in ' + quoted.join(' ') + '; do '
-      + 'if [ -f "$d/' + GATEWAY_REL + '" ]; then echo "REPO_INDEX=$i"; exit 0; fi; '
-      + 'i=$((i+1)); done; echo REPO_NONE; exit 3'
+    const probe = quoted.length > 0
+      ? 'for d in ' + quoted.join(' ') + '; do '
+        + 'if [ -f "$d/' + GATEWAY_REL + '" ]; then printf "REPO_HIT=%s\\n" "$d"; exit 0; fi; '
+        + 'done; '
+      : ''
+    const script = probe
+      + 'CONF=$HOME/.config/ontology-methodology/repo.conf; '
+      + 'if [ -f "$CONF" ]; then while IFS= read -r line; do '
+      + 'case "$line" in \'#\'*|"") continue ;; esac; '
+      + 'if [ -f "$line/' + GATEWAY_REL + '" ]; then printf "REPO_HIT=%s\\n" "$line"; exit 0; fi; '
+      + 'done < "$CONF"; fi; '
+      + 'echo REPO_NONE; exit 3'
     const request = { command: script, timeoutMs: 30000 }
     if (exec && exec.signal) request.signal = exec.signal
     const handle = await shell.execute(shell.resolve(request))
     const result = await handle.result()
     const stdout = result.stdout && result.stdout.text ? result.stdout.text : ''
-    const matched = stdout.match(/REPO_INDEX=(\d+)/)
-    if (matched) {
-      const hit = roots[Number(matched[1])]
-      if (typeof hit === 'string') return hit
-    }
-    throw new Error('methodology adapter 未能在候选目录中找到 ' + GATEWAY_REL + ';候选: '
-      + roots.join(' , ') + '。请先安装方法论工具本体(clone 仓库或运行其 install 脚本),再以 repo 参数显式指定该安装位置。')
+    const matched = stdout.match(/REPO_HIT=(.+)/)
+    if (matched && matched[1].length > 0) return matched[1]
+    throw new Error('methodology adapter 未能在候选目录与 repo.conf 登记中找到 ' + GATEWAY_REL + ';候选: '
+      + (roots.length > 0 ? roots.join(' , ') : '(无)')
+      + ';repo.conf($HOME/.config/ontology-methodology/repo.conf,本体 install 脚本自动登记)。'
+      + '请先安装方法论工具本体(clone 仓库或运行其 install 脚本),再以 repo 参数显式指定该安装位置。')
   }
 
   async function runGateway(subArgs, args, exec) {

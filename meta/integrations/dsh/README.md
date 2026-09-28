@@ -158,6 +158,7 @@ Cordis 的三层身份:`pluginId`(稳定实例)/ `packageId`(不可变代码版�
 | Client 解析失败 | 两半都是纯 JS 函数体:无 JSX / TS / `import`;建元素用 `React.createElement` |
 | 工具报"输出不是 JSON" | 先看报错里 **仓库根解析为 …(候选: …)** 那一段:解析结果不对,或该目录下没有 `meta/integrations/gateway.py`。工具参数 `repo` 可显式指定仓库根、跳过解析 |
 | 工具报 `uv … Project directory 'meta/scripts' does not exist` | **旧版症状**:适配壳依赖 shell 的隐式 cwd。当前版本已改为显式解析仓库根;若再现,说明候选(shell 默认 workdir + `workspaceRegistry` 工作区)里都没有仓库根 —— 用 `repo` 显式指定 |
+| 工具报"未能在候选目录与 repo.conf 登记中找到" | 全局安装未被发现的兜底指引:重跑本体 `install.sh`(会自动登记 `~/.config/ontology-methodology/repo.conf`),或检查 conf 里是否有失效行(目录被删/缺 gateway.py 的行会被静默跳过,不报错) |
 | `command not found: uv` / uv 缓存只读 | 适配壳已把 `UV_*` 指到 `$PWD/.uv-cache`;若仓库未 `uv sync` 过,先跑一次 `uv run --project meta/scripts python meta/scripts/check.py <target>` |
 | 面板空白但工具正常 | 该 UI 只在**最新一次 eligible `cordis_run` 卡片**里渲染;查 `cordis_inspect_self` 的 client-render 诊断。`key` 必须是 `'self'`,不要写 `pluginRunId` |
 | Windows | 本版 Host 半用的是 POSIX shell 片段(`[ -x … ]`、`export A=B`)。win32 上 DSH 走 pwsh,需要改写 `RUNNER` 一行——见 `methodology.host.js` 顶部注释 |
@@ -165,7 +166,7 @@ Cordis 的三层身份:`pluginId`(稳定实例)/ `packageId`(不可变代码版�
 ## 六、契约自检(不需要启动 DSH)
 
 ```bash
-node meta/integrations/dsh/tests/verify-adapter.mjs          # 106 项断言(快;含旧 shell API 反向断言)
+node meta/integrations/dsh/tests/verify-adapter.mjs          # 113 项断言(快;含 repo.conf 兜底与旧 shell API 反向断言)
 node meta/integrations/dsh/tests/verify-adapter.mjs --full    # 追加真实 bench/gate 信封
 ```
 
@@ -192,13 +193,16 @@ stderr: error: Project directory `meta/scripts` does not exist
 
 `uv` 是在错误的 cwd 下找 `meta/scripts` 才报的这句——**网关一次都没跑起来**。这个故障在仓库内自检里看不见(假 shell 对任何命令都回放同一个信封),在终端里也看不见(人已经 `cd` 到仓库根了),只有真机动态装载才暴露。
 
-现在的解析顺序与纪律:
+现在的解析顺序与纪律(R1 兜底:repo.conf 只在探测未命中时参与,开发 clone 会话仍命中开发 clone):
 
 1. 工具参数 `repo`(显式指定,优先级最高,**跳过探测**);
 2. `shell.resolve({command:'true'})` 暴露的默认 `workdir`;
-3. `workspaceRegistry` 里已注册的工作区路径(可选依赖,缺席即跳过;只取 `path` 这个标量字段)。
+3. `workspaceRegistry` 里已注册的工作区路径(可选依赖,缺席即跳过;只取 `path` 这个标量字段);
+4. `~/.config/ontology-methodology/repo.conf` 登记行(本体 install 脚本自动登记,首行优先;失效行——目录被删/缺 gateway.py——静默跳过,坏 conf 不产生新故障)。
 
-候选去重后,用**一次** shell 往返逐个做 `[ -f <cand>/meta/integrations/gateway.py ]`,命中者即仓库根;随后每次执行都把 `workdir` 与 `cd` 一起钉死在该根上。解析失败时抛出的错误会列出全部候选,并提示用 `repo` 显式指定——而不是把 `uv` 的原始报错丢给使用者。`methodology_status` 返回的 `root` 字段就是本次解析结果,可用来一眼确认没跑错目录。
+候选去重后,用**一次** shell 往返逐个做 `[ -f <cand>/meta/integrations/gateway.py ]`(repo.conf 的读取与逐行验证并入同一往返,不增加往返数),命中者即仓库根;随后每次执行都把 `workdir` 与 `cd` 一起钉死在该根上。解析失败时抛出的错误会列出全部候选与 repo.conf 位置,并提示用 `repo` 显式指定——而不是把 `uv` 的原始报错丢给使用者。`methodology_status` 返回的 `root` 字段就是本次解析结果,可用来一眼确认没跑错目录。
+
+**为什么需要第 4 层**:全局安装(`install.sh --dest ~/.local/share/ontology-methodology`)不是任何会话的工作目录、也不在 workspaceRegistry 里——装到任意无关项目的会话中,前 3 层永远 miss。install 脚本在安装成功时把 DEST 登记进 repo.conf(幂等,最新安装提至首行),适配壳据此兜底,实现「一键安装、零配置可用」。
 
 ## 七、常驻化(第一步已交付:Host-only bundle)
 

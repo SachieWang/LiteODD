@@ -142,7 +142,7 @@ node meta/integrations/dsh/tests/verify-adapter.mjs --full    # 追加真实 ben
 | "装好"的定义 | 5 个工具随 DSH 进程启动注册 | `uv sync` 完成 + `gateway.py snapshot` 出合法信封 |
 
 - **同仓库、单源**:bundle 与动态壳共享 `tools.core.js` 并由等价断言钉住,不产生第二份实现;拆仓是被明确否决的选项(双份真相)。
-- **bundle 项目无关**:`resolveRoot` 自动解析(工作区/注册表),失败时报错指向"先装本体、以 `repo:` 指向该安装"——一个 bundle 服务任意一次本体安装。
+- **bundle 项目无关**:`resolveRoot` 自动解析(工作区/注册表探测 → `repo.conf` 兜底,install 脚本自动登记),失败时报错指向"先装本体、以 `repo:` 指向该安装"——一个 bundle 服务任意一次本体安装。
 - **本体 harness 无关**:`git clone + uv run` 独立可用(三红线之一);不装 DSH 完全不影响五层工具链。
 
 ## 十、事件面接线前必须先解决的一件事(种子集)

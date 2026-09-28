@@ -1,6 +1,6 @@
 # =============================================================================
 # 方法论工具体系 —— 一键安装脚本 (PowerShell;cmd 用户经 powershell -File 走此脚本)
-# 与 install.sh 同逻辑:clone/更新 -> uv sync -> gateway 冒烟校验。
+# 与 install.sh 同逻辑:clone/更新 -> uv sync -> gateway 冒烟校验 -> repo.conf 登记。
 # 不替用户装 git/uv;不触碰 targets/;diverge 拒绝而非 reset。
 # =============================================================================
 param(
@@ -74,5 +74,18 @@ Draft7Validator(schema).validate(env)
 $envelope | & $venvPy -c $check || Die "snapshot 输出未过 verdict.schema.json 校验"
 
 Pop-Location
+
+# --- 登记:repo.conf(适配壳 R1 兜底消费)----------------------------------------
+# 与 install.sh 同语义:DEST 去重后提至首行,写入 %LOCALAPPDATA%\ontology-methodology
+# \repo.conf。解析侧对失效行静默跳过,故无卸载钩子。
+Say "登记安装位置 -> repo.conf"
+$confDir = Join-Path $env:LOCALAPPDATA 'ontology-methodology'
+New-Item -ItemType Directory -Force -Path $confDir | Out-Null
+$conf = Join-Path $confDir 'repo.conf'
+$destAbs = (Get-Item $Dest).FullName
+$existing = @()
+if (Test-Path $conf) { $existing = @(Get-Content $conf | Where-Object { $_ -and ($_ -ne $destAbs) }) }
+Set-Content -Path $conf -Value (@($destAbs) + $existing) -Encoding ascii
+
 Say "装好: $Dest"
 Say "注意: DSH 适配壳的 RUNNER 为 POSIX 片段——Windows 上本体可用,DSH 内 5 个工具暂不可用(待独立 change 修)。"

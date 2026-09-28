@@ -134,7 +134,7 @@ const STATUS_SCHEMA = {
 // 注意:这里用 object 根(raw 模式),必填**只能**由根的 required 数组声明;
 // 在 raw 模式给单个属性写 `required: true` 会被 Guard 直接拒绝
 // ("required belongs to the containing raw object schema")。
-const P_REPO = { type: 'string', description: '方法论仓库根目录(绝对路径)。省略则由适配壳自动解析(默认工作目录 + 已注册工作区)。' }
+const P_REPO = { type: 'string', description: '方法论仓库根目录(绝对路径)。省略则由适配壳自动解析:默认工作目录 + 已注册工作区探测,未命中再读 ~/.config/ontology-methodology/repo.conf(install 脚本自动登记的安装位置,首行优先)。' }
 const P_TARGET = { type: 'string', description: '目标项目目录,相对仓库根,例如 targets/dsh。' }
 const P_CANDIDATE = { type: 'string', description: '复盘候选 YAML 路径,相对仓库根,例如 meta/evolution/retro/accept-example.yaml。' }
 
@@ -262,31 +262,43 @@ return {
       return out
     }
 
-    // 一次 shell 往返问完所有候选:命中即回 REPO_INDEX=<n>。避免"每个候选一次往返"。
+    // 一次 shell 往返问完所有候选:探测候选命中即回 REPO_HIT=<路径>;全部 miss
+    // 则继续读 repo.conf(install 脚本自动登记的安装位置,首行优先)逐行验证,
+    // 命中同回 REPO_HIT。conf 失效行(目录不存在/无 gateway.py)自然跳过,
+    // 坏 conf 不产生新故障——不增加往返,不产生新故障模式。
     async function resolveRoot(args, exec) {
       const explicit = args && typeof args.repo === 'string' ? args.repo : ''
       if (explicit.length > 0) return explicit
+      // 解析链(R1 兜底):显式 repo → 探测候选(默认 workdir + workspaceRegistry)
+      // → repo.conf 登记行(install 脚本自动登记,首行优先)。conf 读取并入同一次
+      // shell 往返:失效行(目录不存在/无 gateway.py)在循环中自然跳过,坏 conf
+      // 不产生新故障;命中回 REPO_HIT=<路径>,探测候选与 conf 行同一协议。
       const roots = candidateRoots()
-      if (roots.length === 0) {
-        throw new Error('methodology adapter 无法解析仓库根:未提供 repo,也没有可探测的候选目录。请显式传 repo(方法论仓库根的绝对路径)。')
-      }
       const quoted = []
       for (let i = 0; i < roots.length; i++) quoted.push(q(roots[i]))
-      const script = 'i=0; for d in ' + quoted.join(' ') + '; do '
-        + 'if [ -f "$d/' + GATEWAY_REL + '" ]; then echo "REPO_INDEX=$i"; exit 0; fi; '
-        + 'i=$((i+1)); done; echo REPO_NONE; exit 3'
+      const probe = quoted.length > 0
+        ? 'for d in ' + quoted.join(' ') + '; do '
+          + 'if [ -f "$d/' + GATEWAY_REL + '" ]; then printf "REPO_HIT=%s\\n" "$d"; exit 0; fi; '
+          + 'done; '
+        : ''
+      const script = probe
+        + 'CONF=$HOME/.config/ontology-methodology/repo.conf; '
+        + 'if [ -f "$CONF" ]; then while IFS= read -r line; do '
+        + 'case "$line" in \'#\'*|"") continue ;; esac; '
+        + 'if [ -f "$line/' + GATEWAY_REL + '" ]; then printf "REPO_HIT=%s\\n" "$line"; exit 0; fi; '
+        + 'done < "$CONF"; fi; '
+        + 'echo REPO_NONE; exit 3'
       const request = { command: script, timeoutMs: 30000 }
       if (exec && exec.signal) request.signal = exec.signal
       const handle = await shell.execute(shell.resolve(request))
       const result = await handle.result()
       const stdout = result.stdout && result.stdout.text ? result.stdout.text : ''
-      const matched = stdout.match(/REPO_INDEX=(\d+)/)
-      if (matched) {
-        const hit = roots[Number(matched[1])]
-        if (typeof hit === 'string') return hit
-      }
-      throw new Error('methodology adapter 未能在候选目录中找到 ' + GATEWAY_REL + ';候选: '
-        + roots.join(' , ') + '。请先安装方法论工具本体(clone 仓库或运行其 install 脚本),再以 repo 参数显式指定该安装位置。')
+      const matched = stdout.match(/REPO_HIT=(.+)/)
+      if (matched && matched[1].length > 0) return matched[1]
+      throw new Error('methodology adapter 未能在候选目录与 repo.conf 登记中找到 ' + GATEWAY_REL + ';候选: '
+        + (roots.length > 0 ? roots.join(' , ') : '(无)')
+        + ';repo.conf($HOME/.config/ontology-methodology/repo.conf,本体 install 脚本自动登记)。'
+        + '请先安装方法论工具本体(clone 仓库或运行其 install 脚本),再以 repo 参数显式指定该安装位置。')
     }
 
     // 同一次调用内的 shell 往返:解析仓库根 → 构造命令 → resolve 补默认值 → execute。

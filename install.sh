@@ -2,7 +2,8 @@
 # =============================================================================
 # 方法论工具体系 —— 一键安装脚本 (POSIX)
 # -----------------------------------------------------------------------------
-# 职责:clone(或更新)本体仓库到 --dest、uv sync 装依赖、gateway 冒烟校验。
+# 职责:clone(或更新)本体仓库到 --dest、uv sync 装依赖、gateway 冒烟校验、
+# 把 DEST 登记进 repo.conf(适配壳的兜底发现通道)。
 # 刻意不做的事:不替用户装 git/uv(只探测并指路);不触碰 targets/(对象层
 # 是用户的实践产物);不做 target 全局发现(另一演进项)。
 #
@@ -86,6 +87,19 @@ schema = json.loads(pathlib.Path("meta/integrations/schemas/verdict.schema.json"
 env = json.load(sys.stdin)
 Draft7Validator(schema).validate(env)
 ' || die "snapshot 输出未过 verdict.schema.json 校验(信封契约被破坏?)"
+
+# --- 登记:repo.conf(适配壳 R1 兜底消费)--------------------------------------
+# 写入 ~/.config/ontology-methodology/repo.conf:DEST 去重后提至首行。DSH 适配壳
+# 的仓库根解析在探测(工作目录/工作区注册表)未命中时逐行消费此文件;失效行
+# (目录被删/缺 gateway.py)由解析侧静默跳过,故本脚本不提供卸载钩子。
+say "登记安装位置 -> repo.conf"
+CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ontology-methodology"
+mkdir -p "$CONF_DIR" || die "无法创建 $CONF_DIR"
+CONF="$CONF_DIR/repo.conf"
+DEST_ABS=$(cd "$DEST" && pwd)
+touch "$CONF" 2>/dev/null || true
+{ printf '%s\n' "$DEST_ABS"; grep -v -F -x -- "$DEST_ABS" "$CONF" 2>/dev/null || true; } > "$CONF.tmp" \
+  && mv "$CONF.tmp" "$CONF" || die "写入 repo.conf 失败(检查 $CONF_DIR 权限)"
 
 say "装好: $DEST"
 say "验证:  cd $DEST && $PY meta/integrations/gateway.py snapshot"

@@ -97,6 +97,9 @@ let cannedEnvelope = null
 // 别的目录,以复现"插件跑在非仓库根 cwd 下"的真实故障(uv 报
 // `Project directory 'meta/scripts' does not exist`)。
 let shellDefaultWorkdir = REPO
+// repo.conf 兜底分支的假 shell 状态:模拟 $HOME/.config/ontology-methodology/repo.conf
+// 的行内容(默认空数组 = conf 不存在/为空;回归用例注入失效行与有效行)。
+let confRepoLines = []
 
 function shellResult(spec, text, exitCode) {
   return {
@@ -132,12 +135,15 @@ const fakeShell = {
     shellCalls.push(spec)
     // 仓库根探测命令:按命令里**实际写出的候选列表**回答,只有候选等于 REPO 才
     // 视为"该目录下有 gateway.py"。假 shell 因此不预设 host 的候选顺序。
+    // repo.conf 兜底分支:命令含 conf 读取片段时,按 confRepoLines(默认空数组
+    // = conf 不存在/为空)逐行作答——失效行(不等于 REPO)自然跳过。
     let projection
-    if (spec.command.includes('REPO_INDEX')) {
+    if (spec.command.includes('REPO_HIT')) {
       const candidates = [...spec.command.matchAll(/'([^']*)'/g)].map(m => m[1])
-      const index = candidates.indexOf(REPO)
-      projection = index >= 0
-        ? shellResult(spec, 'REPO_INDEX=' + index + '\n')
+      let hit = candidates.find(c => c === REPO)
+      if (hit === undefined) hit = confRepoLines.find(l => l === REPO)
+      projection = hit !== undefined
+        ? shellResult(spec, 'REPO_HIT=' + hit + '\n')
         : shellResult(spec, 'REPO_NONE\n', 3)
     } else {
       projection = shellResult(spec, JSON.stringify(cannedEnvelope))
@@ -204,7 +210,9 @@ check('返回 Cordis plugin 形状(有 apply)', plugin && typeof plugin.apply ==
 check('声明 shell 硬依赖', Array.isArray(plugin && plugin.inject) && plugin.inject.includes('shell'))
 
 // 可选依赖:只暴露 .path 这一个标量(与真实 Workspace 实体同样只取叶子字段)。
-const mockWorkspaceRegistry = { list: () => [{ path: REPO }] }
+// registryPaths 可变:回归用例注入"无工作区"(空数组)以复现候选全 miss。
+let registryPaths = [REPO]
+const mockWorkspaceRegistry = { list: () => registryPaths.map(p => ({ path: p })) }
 const mockCtx = {
   get: (name) => (name === 'shell' ? fakeShell : (name === 'workspaceRegistry' ? mockWorkspaceRegistry : undefined)),
   effect: (cb) => { const d = cb(); return typeof d === 'function' ? d : () => {} },
@@ -372,7 +380,7 @@ try {
   // 才有的 ".uv-cache" 来区分)
   const gatewayCall = shellCalls.find(c => c.command.includes('.uv-cache'))
   check('  网关调用仍钉在解析出的仓库根', !!gatewayCall && gatewayCall.workdir === REPO)
-  check('  探测只走一次 shell 往返', shellCalls.filter(c => c.command.includes('REPO_INDEX')).length === 1)
+  check('  探测只走一次 shell 往返', shellCalls.filter(c => c.command.includes('REPO_HIT')).length === 1)
 } catch (error) {
   check('默认 cwd 错误时仍解析出仓库根', false, error.message)
 } finally {
@@ -382,10 +390,60 @@ try {
 shellCalls.length = 0
 try {
   await statusTool.execute({ repo: REPO }, { signal: undefined })
-  check('显式 repo 跳过探测(0 次探测往返)', shellCalls.filter(c => c.command.includes('REPO_INDEX')).length === 0)
+  check('显式 repo 跳过探测(0 次探测往返)', shellCalls.filter(c => c.command.includes('REPO_HIT')).length === 0)
 } catch (error) {
   check('显式 repo 跳过探测(0 次探测往返)', false, error.message)
 }
+
+// ---- 回归:repo.conf 兜底(R1) ----------------------------------------------
+// install 脚本把安装位置登记进 $HOME/.config/ontology-methodology/repo.conf;
+// 探测候选全 miss 时,conf 有效行(含 gateway.py 的目录)兜底命中;探测候选
+// 命中时 conf 不参与(开发 clone 优先);conf 失效行静默跳过;坏 conf 回退报错。
+console.log('\n== 回归:repo.conf 兜底(R1)==')
+// 用例 1:探测候选全 miss + conf 首行失效/注释/空行,第二行有效 → 兜底命中
+shellDefaultWorkdir = '/nonexistent/default-cwd'
+registryPaths = []   // registry 空 → 探测候选全 miss(复现无关项目会话)
+confRepoLines = ['/nonexistent/stale-install', REPO]
+cannedEnvelope = envelopes.snapshot
+shellCalls.length = 0
+try {
+  const value = await statusTool.execute({}, { signal: undefined })
+  check('候选全 miss + conf 有效行 → 兜底命中', value.root === REPO, 'root=' + value.root)
+  check('  仍只一次探测往返(含 conf 读取)', shellCalls.filter(c => c.command.includes('REPO_HIT')).length === 1)
+  const probeCmd = shellCalls.find(c => c.command.includes('REPO_HIT'))
+  check('  conf 读取并入探测同一往返(命令含 conf 路径)', !!probeCmd && probeCmd.command.includes('ontology-methodology/repo.conf'))
+  const gatewayCall = shellCalls.find(c => c.command.includes('.uv-cache'))
+  check('  网关调用钉在 conf 兜底的仓库根', !!gatewayCall && gatewayCall.workdir === REPO)
+} catch (error) {
+  check('候选全 miss + conf 有效行 → 兜底命中', false, error.message)
+}
+// 用例 2:探测候选命中 → conf 不参与(R1:开发 clone 优先于全局登记)
+shellDefaultWorkdir = REPO
+confRepoLines = ['/some/other/install']
+shellCalls.length = 0
+try {
+  const value = await statusTool.execute({}, { signal: undefined })
+  check('探测候选命中 → conf 不参与(仍命中探测候选)', value.root === REPO, 'root=' + value.root)
+} catch (error) {
+  check('探测候选命中 → conf 不参与(仍命中探测候选)', false, error.message)
+}
+// 用例 3:conf 全部失效 + 候选全 miss → 报错(回退现行链路,坏 conf 不放行)
+shellDefaultWorkdir = '/nonexistent/default-cwd'
+registryPaths = []
+confRepoLines = ['/nonexistent/stale-1', '/nonexistent/stale-2']
+shellCalls.length = 0
+let confFallbackError = null
+try {
+  await statusTool.execute({}, { signal: undefined })
+} catch (error) {
+  confFallbackError = error
+}
+check('conf 全失效 + 候选全 miss → 报错并指路 repo.conf', !!confFallbackError
+  && /repo\.conf/.test(confFallbackError.message), confFallbackError && confFallbackError.message)
+check('  报错文案含 install 脚本指引', !!confFallbackError && /install/.test(confFallbackError.message))
+shellDefaultWorkdir = REPO
+registryPaths = [REPO]
+confRepoLines = []
 
 // ---- 反向断言:假 shell 不提供 run(),适配壳不得回退旧 API --------------------
 // 2026-09-28 的真实故障:DSH d6bebc5783 起 ctx.shell 收敛为 resolve+execute,
