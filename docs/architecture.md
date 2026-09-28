@@ -27,7 +27,7 @@
 
 | 层 | 职责 | 本仓库实现 |
 |---|---|---|
-| **0 本体/知识底座** | 语义脊柱 + 结构约束 + 对象层契约 | `meta/ontology/frame.yaml`(7 类型/8 关系)、`meta/metaschema/*.schema.json`(4 份)、`meta/scripts/check.py`、`meta/templates/*.template.yaml` |
+| **0 本体/知识底座** | 语义脊柱 + 结构约束 + 对象层契约 | `meta/ontology/frame.yaml`(9 类型/8 关系)、`meta/metaschema/*.schema.json`(4 份)、`meta/scripts/check.py`、`meta/templates/*.template.yaml` |
 | **1 方法执行层** | 把方法固化成 agent 可执行程序 | `meta/skills/`(需求理解 / 架构评估 / 领域建模) |
 | **2 治理/编排层** | 把可把控做实:编排 + 门控 + 审批 + 审计 | `meta/engine/`(DAG 引擎 + 闸门注册表 + 审批三态 + 目标中性) |
 | **3 演进治理层** | 自进化:复盘→收敛裁判→版本化吸收 | `meta/evolution/`(`retro.md` + `judge.py` + `bench.py`) |

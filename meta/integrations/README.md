@@ -39,11 +39,16 @@ meta/integrations/
     │   ├─ methodology.host.js   #   Host 半:5 个模型工具 + 包内 RPC
     │   ├─ methodology.client.js #   Client 半:Cordis Run 卡片里的判决面板
     │   └─ build_payload.py      #   把两半拼成 cordis_define 的合法入参
+    ├─ bundle/                   # 常驻 bundle(进程启动即装载,Host-only,与动态半共享源)
+    │   ├─ package.json          #   dsh-methodology-adapter;dsh.bundle.patch
+    │   ├─ cordis.patch.yml      #   按包名引用,通道无关
+    │   ├─ lib/index.js          #   ESM 静态插件:ctx.tools.register × 5
+    │   └─ shared/tools.core.js  #   与动态半逐段一致的共享源(单一事实源)
     ├─ skills/                   # DSH 技能源(触发面)
     │   ├─ methodology-gate/SKILL.md
     │   └─ methodology-capture-retro/SKILL.md
     └─ tests/
-        └─ verify-adapter.mjs    # 用 DSH 自带校验器钉住宿主契约(84 项断言)
+        └─ verify-adapter.mjs    # 用 DSH 自带校验器钉住宿主契约(104 项断言)
 ```
 
 **技能副本规则**(与 Layer 1 同构):源在 `meta/integrations/dsh/skills/<name>/SKILL.md`,DSH 消费副本在项目根的 `.agents/skills/<name>/SKILL.md`(DSH 的技能发现根)。改源后同步副本。

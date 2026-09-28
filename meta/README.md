@@ -4,7 +4,7 @@
 
 | 子目录 | 内容 |
 |---|---|
-| `ontology/frame.yaml` | 元层通用本体类型:7 概念类型 + 8 关系 + 轻属性 + `instantiateOf` 分离规则 |
+| `ontology/frame.yaml` | 元层通用本体类型:9 概念类型 + 8 关系 + 轻属性 + `instantiateOf` 分离规则 |
 | `metaschema/*.schema.json` | 四份 artifact 元模型:requirement / adr / arch-report / domain-model |
 | `templates/*.template.yaml` | 对象层三文件模板(instances / components / sources),通用、无目标内容 |
 | `scripts/` | 单一合规校验脚本(uv + Python) |

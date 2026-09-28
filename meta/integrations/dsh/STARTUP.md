@@ -13,13 +13,16 @@
 | 需要什么 | 需要 **`cordis`（创造）preset** 才有 `cordis_*` 工具 | 需要能改 preset/`cordis.yml`、能重启 DSH |
 | 适用 | 临时试用、一次会话内的实验 | “我要每天在 DSH 里用这套方法论”的日常形态 |
 
-> 二者不是“两种语法换个写法”，是**两套运行面**。适配壳若要同时支持，就要维护两份形状（动态函数体 + 静态模块导出）——这正是本 change 把静态版**刻意留到后续**的原因（见 `README.md` 与 change 的 tasks 6.1），避免两份实现因无人验证而漂移。
+> 二者不是“两种语法换个写法”，是**两套运行面**。适配壳同时维护两份形状（动态函数体 + 静态模块导出），由 `verify-adapter.mjs` 的逐段等价断言强制一致，不会漂移（见 `README.md` §七“常驻化”）。
 
 ## 二、本仓库当前交付支持哪种
 
-**只支持 A（动态）**。`dynamic/methodology.host.js` / `methodology.client.js` 是动态函数体：host 半依赖沙箱 `harness` 注册工具与 RPC，client 半依赖 `tool.view.cordis` slot。
+**A（动态）与 B（静态常驻）的第一步（Host-only）均已交付**：
 
-**B（静态）尚未交付能力**：要常驻装载，需要把 host 半改写成模块导出形态（`export function apply`，用 `ctx.tools.register(defineTool({...}))`），并决定 UI 半是否要独立 client 包。官方教程 `01-first-plugin` / `07-into-the-harness` 教会的就是这个形状，可作为改写底稿。
+- **A 动态**:`dynamic/methodology.host.js` / `methodology.client.js` 是动态函数体:host 半依赖沙箱 `harness` 注册工具与 RPC,client 半依赖 `tool.view.cordis` slot;
+- **B 静态常驻**:`bundle/` 是可安装的 npm bundle(包名 `dsh-methodology-adapter`),进程启动即装载 5 个 `methodology_*` 工具(见 §四)。
+
+**B 的第二步（浏览器半的卡片 UI）尚未交付**：常驻形态没有 `host.call` 消费者，面板仍由动态插件承担，待需要时再议。
 
 ## 三、方式 A —— 会话内动态启动（已交付、已验证）
 

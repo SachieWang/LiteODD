@@ -76,16 +76,16 @@
 
 | 层 | 内容 | 现状 |
 |---|---|---|
-| **Layer 0 本体/知识底座** | frame(7 类型/8 关系)、4 份元模型 schema、`check.py` 单一校验器(uv+Python)、对象层契约 + 3 模板 | ✅ 已归档并入库 |
+| **Layer 0 本体/知识底座** | frame(9 类型/8 关系)、4 份元模型 schema、`check.py` 单一校验器(uv+Python)、对象层契约 + 3 模板 | ✅ 已归档并入库 |
 | **Layer 1 技能包** | 需求理解 / 架构评估 / 领域建模 三技能(`SKILL.md`,固定五段契约) | ✅ 已归档并入库 |
 | **Layer 2 治理/编排** | 确定性 DAG 引擎(拓扑/闸门注册表/审批三态/审计/目标中性) | ✅ 已归档并入库 |
 | **Layer 3 演进治理** | `meta/evolution/`:复盘模板 + 收敛裁判(`judge.py`)+ 基准回归(`bench.py`) | ✅ 已归档并入库 |
 | **Layer 4 可追溯** | `meta/trace/tracer.py`:链接完整性 `verify` + 覆盖度 `report` + 反向查询 `refs/why` | ✅ 已归档并入库 |
-| **外挂 集成适配层** | `meta/integrations/`:单一网关 `gateway.py`(统一 JSON 信封)+ DSH Cordis 插件壳(5 个模型工具 / 卡片面板 / 两个技能)+ 宿主契约自检 | ✅ 已入库(常驻 bundle 待后续) |
+| **外挂 集成适配层** | `meta/integrations/`:单一网关 `gateway.py`(统一 JSON 信封)+ DSH Cordis 插件壳(5 个模型工具 / 卡片面板 / 两个技能,动态 + 常驻 bundle 双形态)+ 宿主契约自检 | ✅ 已入库(常驻 bundle Host-only 第一步已交付) |
 
 方法论本体(meta/ 全部)已入库;实践样例(instances/产物/复盘记录)存于忽略的 `targets/`,演示见教程的 eShop-demo 模拟案例。
 
-**「可复用」现有两份证据**:第一个目标是 `targets/dsh`(同源 dogfood);第二个是**异质**目标 `targets/plant-maint`(制造业设备维保),在其中以 **meta 层零改动**跑通五层全链——7/7 概念类型、8/8 关系类型均有真实用例,需求下游覆盖 100%、孤儿概念 0。结论为「**未被证伪**」而非「已证通用」:作者事先知道词表,不能完全排除拟合;限制与 5 项缺口(G1–G5)见该 change 的 `tasks.md`。
+**「可复用」现有两份证据**:第一个目标是 `targets/dsh`(同源 dogfood);第二个是**异质**目标 `targets/plant-maint`(制造业设备维保),在其中以 **meta 层零改动**跑通五层全链——9/9 概念类型、8/8 关系类型均有真实用例,需求下游覆盖 100%、孤儿概念 0。结论为「**未被证伪**」而非「已证通用」:作者事先知道词表,不能完全排除拟合;限制与 5 项缺口(G1–G5)见该 change 的 `tasks.md`。
 
 ---
 
@@ -162,7 +162,7 @@ uv run --project meta/scripts python meta/integrations/gateway.py gate --target 
 
 ## 版本库状态
 
-- 提交基线:`37f4f79`(Layer 0/1)→ `ffb40c5`(Layer 2)→ `69768f3`(Layer 3)→ `950a4f4`(来源可校验 + 对象层契约)→ `6c45c15`(Layer 4)→ `add6b6d`(Layer 2-4 文档回填)→ `5ee9242`(集成适配层)。
-- 归档 change:见 `openspec/changes/archive/`(methodology-layer0 / layer1-skills / layer2-harness / layer3-evolution / gate-provenance-resolvable / object-realm-contract / layer4-traceability / add-integration-adapter / method-seam-instance-first / relation-conformance-report / add-heterogeneous-target)。
+- 提交基线:`37f4f79`(Layer 0/1)→ `ffb40c5`(Layer 2)→ `69768f3`(Layer 3)→ `950a4f4`(来源可校验 + 对象层契约)→ `6c45c15`(Layer 4)→ `add6b6d`(Layer 2-4 文档回填)→ `5ee9242`(集成适配层)→ `6b90619`(关系一致性指标)→ `1ffb48f`(异质目标可复用验证)→ `e9b2d6c`/`bf356e4`/`3cfd5ca`/`fc84571`(frame 增强:关系语义 / Rule / Actor / path 可选)→ `f5f33ff`(引擎 YAML 报错可读化)→ `fde0c73`(常驻 bundle,Host-only)→ `08bd016`(分发形态通道无关)→ `f009066`(工具箱一键安装)。
+- 归档 change:19 条,见 `openspec/changes/archive/`(地基:methodology-layer0 / layer1-skills / layer2-harness / layer3-evolution / layer4-traceability / object-realm-contract 等;异质验证与缺口收口:add-heterogeneous-target / method-seam-instance-first / relation-conformance-report / frame-relation-semantics / frame-rule-concept-type / frame-actor-concept-type / component-path-optional / engine-malformed-yaml-handling;集成与分发:add-integration-adapter / add-resident-bundle / bundle-distribution-form / toolbox-installer)。
 - 主规格:见 `openspec/specs/methodology/`(11 个能力)。
 - 实践产物 `targets/` 不入库(待独立工具仓分发)。

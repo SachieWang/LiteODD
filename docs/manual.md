@@ -22,9 +22,9 @@
 
 ## 2. 本体 frame(meta 层)
 
-文件:`meta/ontology/frame.yaml`。定义 7 通用**类型**和 8 关系:**类型在元层,实例在对象层**。
+文件:`meta/ontology/frame.yaml`。定义 9 通用**类型**和 8 关系:**类型在元层,实例在对象层**。
 
-**7 类型:**
+**9 类型:**
 
 | 类型 | 语义 | 典型属性 |
 |---|---|---|
@@ -35,6 +35,8 @@
 | `PersistentState` | 可重建/可追溯的状态 | appendOnly, reconstructable, invariants |
 | `EventStream` | 事件的产生/观察/排序 | producers, observers, ordering |
 | `ContextBoundary` | 隔离/作用域边界 | isolation, shadowable, restricts |
+| `Rule` | 可版本化、约束其它概念的规则/规程 | version, effectiveFrom, appliesTo |
+| `Actor` | 执行或参与执行的人类/角色/组织主体 | role, orgUnit |
 
 **8 关系:** `composes, providedBy, usedBy, triggers, writes, reads, dependsOn, constrains`。
 

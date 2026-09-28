@@ -164,7 +164,7 @@ Cordis 的三层身份:`pluginId`(稳定实例)/ `packageId`(不可变代码版�
 ## 六、契约自检(不需要启动 DSH)
 
 ```bash
-node meta/integrations/dsh/tests/verify-adapter.mjs          # 84 项断言(快)
+node meta/integrations/dsh/tests/verify-adapter.mjs          # 104 项断言(快)
 node meta/integrations/dsh/tests/verify-adapter.mjs --full    # 追加真实 bench/gate 信封
 ```
 
